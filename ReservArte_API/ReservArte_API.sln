@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReservArte_API", "ReservArte_API.csproj", "{E788B44D-22B5-43EE-C768-2D4FA35AC933}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E788B44D-22B5-43EE-C768-2D4FA35AC933}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E788B44D-22B5-43EE-C768-2D4FA35AC933}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E788B44D-22B5-43EE-C768-2D4FA35AC933}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E788B44D-22B5-43EE-C768-2D4FA35AC933}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {180B8665-DAD5-4541-958A-99E29F66D495}
+	EndGlobalSection
+EndGlobal
