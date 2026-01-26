@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using ReservArte_API.Models;
 using ReservArte_API.Services;
 using ReservArte_API.Models.DTOs;
+using ReservArte_API.Services.Interfaces;
 
 namespace ReservArte_API.Controllers
 {
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;

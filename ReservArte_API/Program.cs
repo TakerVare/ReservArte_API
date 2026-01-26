@@ -6,6 +6,11 @@ using ReservArte_API.Models;
 using ReservArte_API.Models.DTOs;
 using ReservArte_API.Services;
 using ReservArte_API.Repositories;
+using ReservArte_API.Services.Interfaces;
+using ReservArte_API.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,7 +32,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 var connectionString = builder.Configuration.GetConnectionString("ReservArteDB");
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+// Add Authorization Policies
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("ClientOwnAppointment", policy =>
+        policy.RequireRole(Roles.Client)
+              .RequireAssertion(context =>
+              {
+                  var userIdClaim = context.User.FindFirst("id")?.Value;
+                  var routeData = context.Resource as Microsoft.AspNetCore.Routing.RouteData;
+                  
+                  if (routeData == null || !routeData.Values.TryGetValue("userId", out var userIdObj))
+                      return false;
+                  
+                  return userIdObj?.ToString() == userIdClaim;
+              })
+    );
 
 // Add services to the container.
 

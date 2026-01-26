@@ -1,5 +1,6 @@
 using ReservArte_API.Models;
 using ReservArte_API.Models.DTOs;
+using ReservArte_API.Repositories.Interfaces;
 
 namespace ReservArte_API.Repositories
 {
