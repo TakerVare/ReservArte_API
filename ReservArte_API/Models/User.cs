@@ -8,6 +8,8 @@ public class User
     public string Email { get; set; }
 
     public string Rol { get; set; }
+    public string Phone  { get; set; }
+    public string? ProfileImageUrl  { get; set; }
 
 
 }   
