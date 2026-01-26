@@ -34,6 +34,8 @@ var connectionString = builder.Configuration.GetConnectionString("ReservArteDB")
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+
 
 // Add Authorization Policies
 builder.Services.AddAuthorizationBuilder()
