@@ -24,7 +24,7 @@ public class EmployeeRepository : IEmployeeRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"SELECT Id, Name, Email, Phone, ProfileImageUrl, HireDate, IsActive 
+            var query = @"SELECT Id, FirstName, LastName, Email, Phone, ProfileImageUrl, HireDate, IsActive 
                          FROM Employees WHERE Rol = @Rol";
 
             using (var command = new SqlCommand(query, connection))
@@ -35,15 +35,19 @@ public class EmployeeRepository : IEmployeeRepository
                 {
                     while (await reader.ReadAsync())
                     {
+                        var firstName = reader.GetString(1);
+                        var lastName = reader.GetString(2);
                         employees.Add(new EmployeeDtoOut
                         {
                             Id = reader.GetInt32(0),
-                            Name = reader.GetString(1),
-                            Email = reader.GetString(2),
-                            Phone = reader.IsDBNull(3) ? null : reader.GetString(3),
-                            ProfileImageUrl = reader.IsDBNull(4) ? null : reader.GetString(4),
-                            HireDate = reader.IsDBNull(5) ? null : reader.GetDateTime(5).ToString("yyyy-MM-dd"),
-                            IsActive = reader.GetBoolean(6)
+                            FirstName = firstName,
+                            LastName = lastName,
+                            FullName = $"{firstName} {lastName}".Trim(),
+                            Email = reader.GetString(3),
+                            Phone = reader.IsDBNull(4) ? null : reader.GetString(4),
+                            ProfileImageUrl = reader.IsDBNull(5) ? null : reader.GetString(5),
+                            HireDate = reader.IsDBNull(6) ? null : reader.GetDateTime(6).ToString("yyyy-MM-dd"),
+                            IsActive = reader.GetBoolean(7)
                         });
                     }
                 }
@@ -58,7 +62,7 @@ public class EmployeeRepository : IEmployeeRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"SELECT Id, Name, Email, Phone, Rol, ProfileImageUrl, HireDate, IsActive 
+            var query = @"SELECT Id, FirstName, LastName, Email, Phone, Rol, ProfileImageUrl, HireDate, IsActive 
                          FROM Employees WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
@@ -72,13 +76,14 @@ public class EmployeeRepository : IEmployeeRepository
                         return new Employee
                         {
                             Id = reader.GetInt32(0),
-                            Name = reader.GetString(1),
-                            Email = reader.GetString(2),
-                            Phone = reader.IsDBNull(3) ? null : reader.GetString(3),
-                            Rol = reader.GetString(4),
-                            ProfileImageUrl = reader.IsDBNull(5) ? null : reader.GetString(5),
-                            HireDate = reader.IsDBNull(6) ? null : reader.GetDateTime(6),
-                            IsActive = reader.GetBoolean(7)
+                            FirstName = reader.GetString(1),
+                            LastName = reader.GetString(2),
+                            Email = reader.GetString(3),
+                            Phone = reader.IsDBNull(4) ? null : reader.GetString(4),
+                            Rol = reader.GetString(5),
+                            ProfileImageUrl = reader.IsDBNull(6) ? null : reader.GetString(6),
+                            HireDate = reader.IsDBNull(7) ? null : reader.GetDateTime(7),
+                            IsActive = reader.GetBoolean(8)
                         };
                     }
                 }
@@ -93,13 +98,14 @@ public class EmployeeRepository : IEmployeeRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"INSERT INTO Employees (Name, Email, Phone, Rol, ProfileImageUrl, HireDate, IsActive)
-                         VALUES (@Name, @Email, @Phone, @Rol, @ProfileImageUrl, @HireDate, @IsActive);
+            var query = @"INSERT INTO Employees (FirstName, LastName, Email, Phone, Rol, ProfileImageUrl, HireDate, IsActive)
+                         VALUES (@FirstName, @LastName, @Email, @Phone, @Rol, @ProfileImageUrl, @HireDate, @IsActive);
                          SELECT CAST(SCOPE_IDENTITY() as int)";
 
             using (var command = new SqlCommand(query, connection))
             {
-                command.Parameters.AddWithValue("@Name", employee.Name);
+                command.Parameters.AddWithValue("@FirstName", employee.FirstName);
+                command.Parameters.AddWithValue("@LastName", employee.LastName);
                 command.Parameters.AddWithValue("@Email", employee.Email);
                 command.Parameters.AddWithValue("@Phone", (object?)employee.Phone ?? DBNull.Value);
                 command.Parameters.AddWithValue("@Rol", Roles.Employee);
@@ -121,7 +127,8 @@ public class EmployeeRepository : IEmployeeRepository
         {
             await connection.OpenAsync();
             var query = @"UPDATE Employees 
-                         SET Name = @Name, 
+                         SET FirstName = @FirstName,
+                             LastName = @LastName, 
                              Email = @Email, 
                              Phone = @Phone,
                              ProfileImageUrl = @ProfileImageUrl, 
@@ -132,7 +139,8 @@ public class EmployeeRepository : IEmployeeRepository
             using (var command = new SqlCommand(query, connection))
             {
                 command.Parameters.AddWithValue("@Id", id);
-                command.Parameters.AddWithValue("@Name", employee.Name);
+                command.Parameters.AddWithValue("@FirstName", employee.FirstName);
+                command.Parameters.AddWithValue("@LastName", employee.LastName);
                 command.Parameters.AddWithValue("@Email", employee.Email);
                 command.Parameters.AddWithValue("@Phone", (object?)employee.Phone ?? DBNull.Value);
                 command.Parameters.AddWithValue("@ProfileImageUrl", (object?)employee.ProfileImageUrl ?? DBNull.Value);

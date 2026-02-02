@@ -33,7 +33,8 @@ public class EmployeeService : IEmployeeService
     {
         var employee = new Employee
         {
-            Name = employeeDto.Name,
+            FirstName = employeeDto.FirstName,
+            LastName = employeeDto.LastName,
             Email = employeeDto.Email,
             Phone = employeeDto.Phone,
             ProfileImageUrl = employeeDto.ProfileImageUrl,
@@ -53,7 +54,8 @@ public class EmployeeService : IEmployeeService
         var existingEmployee = await _repository.GetByIdAsync(id);
         if (existingEmployee == null) return null;
 
-        existingEmployee.Name = employeeDto.Name;
+        existingEmployee.FirstName = employeeDto.FirstName;
+        existingEmployee.LastName = employeeDto.LastName;
         existingEmployee.Email = employeeDto.Email;
         existingEmployee.Phone = employeeDto.Phone;
         existingEmployee.ProfileImageUrl = employeeDto.ProfileImageUrl;
@@ -222,7 +224,9 @@ public class EmployeeService : IEmployeeService
         return new EmployeeDtoOut
         {
             Id = employee.Id,
-            Name = employee.Name,
+            FirstName = employee.FirstName,
+            LastName = employee.LastName,
+            FullName = employee.FullName,
             Email = employee.Email,
             Phone = employee.Phone,
             ProfileImageUrl = employee.ProfileImageUrl,

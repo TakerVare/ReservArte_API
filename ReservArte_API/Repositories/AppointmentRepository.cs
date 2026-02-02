@@ -128,7 +128,7 @@ namespace ReservArte_API.Repositories
             using (var connection = new SqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                var query = "SELECT Id, Name, Email, Rol FROM Users WHERE Id = @CustomerId";
+                var query = "SELECT Id, FirstName, LastName, Email, Rol FROM Users WHERE Id = @CustomerId";
                 
                 using (var command = new SqlCommand(query, connection))
                 {
@@ -141,9 +141,10 @@ namespace ReservArte_API.Repositories
                             users.Add(new User
                             {
                                 Id = reader.GetInt32(0),
-                                Name = reader.GetString(1),
-                                Email = reader.GetString(2),
-                                Rol = reader.GetString(3)
+                                FirstName = reader.GetString(1),
+                                LastName = reader.GetString(2),
+                                Email = reader.GetString(3),
+                                Rol = reader.GetString(4)
                             });
                         }
                     }
@@ -160,7 +161,7 @@ namespace ReservArte_API.Repositories
             using (var connection = new SqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                var query = "SELECT Id, Name, Email, Rol FROM Users WHERE Id = @EmployeeId";
+                var query = "SELECT Id, FirstName, LastName, Email, Rol FROM Users WHERE Id = @EmployeeId";
                 
                 using (var command = new SqlCommand(query, connection))
                 {
@@ -173,9 +174,10 @@ namespace ReservArte_API.Repositories
                             users.Add(new User
                             {
                                 Id = reader.GetInt32(0),
-                                Name = reader.GetString(1),
-                                Email = reader.GetString(2),
-                                Rol = reader.GetString(3)
+                                FirstName = reader.GetString(1),
+                                LastName = reader.GetString(2),
+                                Email = reader.GetString(3),
+                                Rol = reader.GetString(4)
                             });
                         }
                     }
