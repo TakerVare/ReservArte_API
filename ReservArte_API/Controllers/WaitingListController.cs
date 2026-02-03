@@ -43,13 +43,13 @@ public class WaitingListController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene la lista de espera de una organización
+    /// Obtiene todas las entradas de la lista de espera
     /// </summary>
-    [HttpGet("organization/{organizationId}")]
+    [HttpGet]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
-    public async Task<ActionResult<IEnumerable<WaitingListDtoOut>>> GetByOrganization(int organizationId)
+    public async Task<ActionResult<IEnumerable<WaitingListDtoOut>>> GetAll()
     {
-        var entries = await _waitingListService.GetByOrganizationAsync(organizationId);
+        var entries = await _waitingListService.GetAllAsync();
         return Ok(entries);
     }
 
@@ -93,7 +93,6 @@ public class WaitingListController : ControllerBase
     [HttpPost("notify")]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
     public async Task<ActionResult<IEnumerable<WaitingListDtoOut>>> NotifyMatchingCustomers(
-        [FromQuery] int organizationId,
         [FromQuery] int serviceId,
         [FromQuery] DateTime date,
         [FromQuery] int? employeeId = null)
@@ -101,7 +100,7 @@ public class WaitingListController : ControllerBase
         try
         {
             var notified = await _waitingListService.NotifyMatchingCustomersAsync(
-                organizationId, serviceId, date, employeeId);
+                serviceId, date, employeeId);
             
             return Ok(new { 
                 message = $"Se ha notificado a {notified.Count()} cliente(s)",

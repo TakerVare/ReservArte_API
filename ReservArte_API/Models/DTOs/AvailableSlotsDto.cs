@@ -32,9 +32,6 @@ namespace ReservArte_API.Models.DTOs;
 /// </summary>
 public class AvailableSlotsRequestDto
 {
-    [Required]
-    public int OrganizationId { get; set; }
-    
     /// <summary>
     /// Fecha para buscar disponibilidad
     /// </summary>

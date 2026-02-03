@@ -21,13 +21,13 @@ public class CustomerController : ControllerBase
     #region Customer CRUD
 
     /// <summary>
-    /// Get all customers (optionally filtered by organization)
+    /// Get all customers
     /// </summary>
     [HttpGet]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
-    public async Task<ActionResult<IEnumerable<CustomerListDtoOut>>> GetAll([FromQuery] int? organizationId = null)
+    public async Task<ActionResult<IEnumerable<CustomerListDtoOut>>> GetAll()
     {
-        var customers = await _customerService.GetAllAsync(organizationId);
+        var customers = await _customerService.GetAllAsync();
         return Ok(customers);
     }
 

@@ -6,7 +6,6 @@ namespace ReservArte_API.Models;
 public class Appointment
 {
     public int Id { get; set; }
-    public int OrganizationId { get; set; }
     public int CustomerId { get; set; }
     public int EmployeeId { get; set; }
 

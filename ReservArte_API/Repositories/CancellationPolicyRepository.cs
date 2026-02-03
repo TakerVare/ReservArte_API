@@ -19,7 +19,7 @@ public class CancellationPolicyRepository : ICancellationPolicyRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT Id, OrganizationId, MinHoursBeforeCancel, PenaltyPercentage,
+        var query = @"SELECT Id, MinHoursBeforeCancel, PenaltyPercentage,
                      MaxNoShowsBeforeBlock, VipMinHoursBeforeCancel, VipPenaltyPercentage,
                      IsActive, CreatedAt, UpdatedAt
                      FROM CancellationPolicies WHERE Id = @Id";
@@ -36,19 +36,18 @@ public class CancellationPolicyRepository : ICancellationPolicyRepository
         return null;
     }
 
-    public async Task<CancellationPolicy?> GetByOrganizationAsync(int organizationId)
+    public async Task<CancellationPolicy?> GetActiveAsync()
     {
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT Id, OrganizationId, MinHoursBeforeCancel, PenaltyPercentage,
+        var query = @"SELECT Id, MinHoursBeforeCancel, PenaltyPercentage,
                      MaxNoShowsBeforeBlock, VipMinHoursBeforeCancel, VipPenaltyPercentage,
                      IsActive, CreatedAt, UpdatedAt
                      FROM CancellationPolicies 
-                     WHERE OrganizationId = @OrganizationId AND IsActive = 1";
+                     WHERE IsActive = 1";
         
         using var command = new SqlCommand(query, connection);
-        command.Parameters.AddWithValue("@OrganizationId", organizationId);
         
         using var reader = await command.ExecuteReaderAsync();
         if (await reader.ReadAsync())
@@ -65,15 +64,14 @@ public class CancellationPolicyRepository : ICancellationPolicyRepository
         await connection.OpenAsync();
         
         var query = @"INSERT INTO CancellationPolicies 
-                     (OrganizationId, MinHoursBeforeCancel, PenaltyPercentage, MaxNoShowsBeforeBlock,
+                     (MinHoursBeforeCancel, PenaltyPercentage, MaxNoShowsBeforeBlock,
                       VipMinHoursBeforeCancel, VipPenaltyPercentage, IsActive, CreatedAt)
                      VALUES 
-                     (@OrganizationId, @MinHoursBeforeCancel, @PenaltyPercentage, @MaxNoShowsBeforeBlock,
+                     (@MinHoursBeforeCancel, @PenaltyPercentage, @MaxNoShowsBeforeBlock,
                       @VipMinHoursBeforeCancel, @VipPenaltyPercentage, @IsActive, @CreatedAt);
                      SELECT CAST(SCOPE_IDENTITY() as int)";
         
         using var command = new SqlCommand(query, connection);
-        command.Parameters.AddWithValue("@OrganizationId", policy.OrganizationId);
         command.Parameters.AddWithValue("@MinHoursBeforeCancel", policy.MinHoursBeforeCancel);
         command.Parameters.AddWithValue("@PenaltyPercentage", policy.PenaltyPercentage);
         command.Parameters.AddWithValue("@MaxNoShowsBeforeBlock", policy.MaxNoShowsBeforeBlock);
@@ -126,7 +124,7 @@ public class CancellationPolicyRepository : ICancellationPolicyRepository
 
     public async Task<CancellationPolicy?> CreateOrUpdateAsync(CancellationPolicy policy)
     {
-        var existing = await GetByOrganizationAsync(policy.OrganizationId);
+        var existing = await GetActiveAsync();
         
         if (existing != null)
         {
@@ -143,7 +141,6 @@ public class CancellationPolicyRepository : ICancellationPolicyRepository
         var policy = new CancellationPolicy
         {
             Id = reader.GetInt32(reader.GetOrdinal("Id")),
-            OrganizationId = reader.GetInt32(reader.GetOrdinal("OrganizationId")),
             MinHoursBeforeCancel = reader.GetInt32(reader.GetOrdinal("MinHoursBeforeCancel")),
             PenaltyPercentage = reader.GetInt32(reader.GetOrdinal("PenaltyPercentage")),
             MaxNoShowsBeforeBlock = reader.GetInt32(reader.GetOrdinal("MaxNoShowsBeforeBlock")),

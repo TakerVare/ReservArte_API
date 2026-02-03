@@ -33,9 +33,6 @@ public class CancellationPolicyDto
 {
     public int Id { get; set; }
     
-    [Required]
-    public int OrganizationId { get; set; }
-    
     /// <summary>
     /// Horas mínimas de anticipación para cancelar sin penalización
     /// </summary>

@@ -17,7 +17,7 @@ public class CustomerRepository : ICustomerRepository
 
     #region Customer CRUD
 
-    public async Task<IEnumerable<CustomerListDtoOut>> GetAllAsync(int? organizationId = null)
+    public async Task<IEnumerable<CustomerListDtoOut>> GetAllAsync()
     {
         var customers = new List<CustomerListDtoOut>();
 
@@ -25,22 +25,12 @@ public class CustomerRepository : ICustomerRepository
         {
             await connection.OpenAsync();
             var query = @"SELECT Id, FirstName, LastName, Email, Phone, Category, LoyaltyPoints, IsBlocked, CreatedAt 
-                         FROM Customers WHERE Rol = @Rol";
-            
-            if (organizationId.HasValue)
-            {
-                query += " AND OrganizationId = @OrganizationId";
-            }
-            
-            query += " ORDER BY CreatedAt DESC";
+                         FROM Customers WHERE Rol = @Rol
+                         ORDER BY CreatedAt DESC";
 
             using (var command = new SqlCommand(query, connection))
             {
                 command.Parameters.AddWithValue("@Rol", Roles.Client);
-                if (organizationId.HasValue)
-                {
-                    command.Parameters.AddWithValue("@OrganizationId", organizationId.Value);
-                }
 
                 using (var reader = await command.ExecuteReaderAsync())
                 {
@@ -73,7 +63,7 @@ public class CustomerRepository : ICustomerRepository
         {
             await connection.OpenAsync();
             var query = @"SELECT c.Id, c.FirstName, c.LastName, c.Email, c.Phone, c.Rol, c.ProfileImageUrl,
-                                c.OrganizationId, c.BirthDate, c.Category, c.LoyaltyPoints, c.IsBlocked, 
+                                c.BirthDate, c.Category, c.LoyaltyPoints, c.IsBlocked, 
                                 c.BlockedReason, c.PreferredContactMethod, c.MarketingConsent, c.CreatedAt
                          FROM Customers c WHERE c.Id = @Id";
 
@@ -94,15 +84,14 @@ public class CustomerRepository : ICustomerRepository
                             Phone = reader.IsDBNull(4) ? null : reader.GetString(4),
                             Rol = reader.GetString(5),
                             ProfileImageUrl = reader.IsDBNull(6) ? null : reader.GetString(6),
-                            OrganizationId = reader.GetInt32(7),
-                            BirthDate = reader.IsDBNull(8) ? null : reader.GetDateTime(8),
-                            Category = reader.GetString(9),
-                            LoyaltyPoints = reader.GetInt32(10),
-                            IsBlocked = reader.GetBoolean(11),
-                            BlockedReason = reader.IsDBNull(12) ? null : reader.GetString(12),
-                            PreferredContactMethod = reader.GetString(13),
-                            MarketingConsent = reader.GetBoolean(14),
-                            CreatedAt = reader.GetDateTime(15)
+                            BirthDate = reader.IsDBNull(7) ? null : reader.GetDateTime(7),
+                            Category = reader.GetString(8),
+                            LoyaltyPoints = reader.GetInt32(9),
+                            IsBlocked = reader.GetBoolean(10),
+                            BlockedReason = reader.IsDBNull(11) ? null : reader.GetString(11),
+                            PreferredContactMethod = reader.GetString(12),
+                            MarketingConsent = reader.GetBoolean(13),
+                            CreatedAt = reader.GetDateTime(14)
                         };
                     }
                 }
@@ -118,7 +107,7 @@ public class CustomerRepository : ICustomerRepository
         {
             await connection.OpenAsync();
             var query = @"SELECT c.Id, c.FirstName, c.LastName, c.Email, c.Phone, c.Rol, c.ProfileImageUrl,
-                                c.OrganizationId, c.BirthDate, c.Category, c.LoyaltyPoints, c.IsBlocked, 
+                                c.BirthDate, c.Category, c.LoyaltyPoints, c.IsBlocked, 
                                 c.BlockedReason, c.PreferredContactMethod, c.MarketingConsent, c.CreatedAt
                          FROM Customers c WHERE c.Email = @Email AND c.Rol = @Rol";
 
@@ -140,15 +129,14 @@ public class CustomerRepository : ICustomerRepository
                             Phone = reader.IsDBNull(4) ? null : reader.GetString(4),
                             Rol = reader.GetString(5),
                             ProfileImageUrl = reader.IsDBNull(6) ? null : reader.GetString(6),
-                            OrganizationId = reader.GetInt32(7),
-                            BirthDate = reader.IsDBNull(8) ? null : reader.GetDateTime(8),
-                            Category = reader.GetString(9),
-                            LoyaltyPoints = reader.GetInt32(10),
-                            IsBlocked = reader.GetBoolean(11),
-                            BlockedReason = reader.IsDBNull(12) ? null : reader.GetString(12),
-                            PreferredContactMethod = reader.GetString(13),
-                            MarketingConsent = reader.GetBoolean(14),
-                            CreatedAt = reader.GetDateTime(15)
+                            BirthDate = reader.IsDBNull(7) ? null : reader.GetDateTime(7),
+                            Category = reader.GetString(8),
+                            LoyaltyPoints = reader.GetInt32(9),
+                            IsBlocked = reader.GetBoolean(10),
+                            BlockedReason = reader.IsDBNull(11) ? null : reader.GetString(11),
+                            PreferredContactMethod = reader.GetString(12),
+                            MarketingConsent = reader.GetBoolean(13),
+                            CreatedAt = reader.GetDateTime(14)
                         };
                     }
                 }
@@ -164,10 +152,10 @@ public class CustomerRepository : ICustomerRepository
         {
             await connection.OpenAsync();
             var query = @"INSERT INTO Customers (FirstName, LastName, Email, Phone, Rol, ProfileImageUrl,
-                                OrganizationId, BirthDate, Category, LoyaltyPoints, IsBlocked, BlockedReason,
+                                BirthDate, Category, LoyaltyPoints, IsBlocked, BlockedReason,
                                 PreferredContactMethod, MarketingConsent, CreatedAt)
                          VALUES (@FirstName, @LastName, @Email, @Phone, @Rol, @ProfileImageUrl,
-                                @OrganizationId, @BirthDate, @Category, @LoyaltyPoints, @IsBlocked, @BlockedReason,
+                                @BirthDate, @Category, @LoyaltyPoints, @IsBlocked, @BlockedReason,
                                 @PreferredContactMethod, @MarketingConsent, @CreatedAt);
                          SELECT CAST(SCOPE_IDENTITY() as int)";
 
@@ -179,7 +167,6 @@ public class CustomerRepository : ICustomerRepository
                 command.Parameters.AddWithValue("@Phone", (object?)customer.Phone ?? DBNull.Value);
                 command.Parameters.AddWithValue("@Rol", Roles.Client);
                 command.Parameters.AddWithValue("@ProfileImageUrl", (object?)customer.ProfileImageUrl ?? DBNull.Value);
-                command.Parameters.AddWithValue("@OrganizationId", customer.OrganizationId);
                 command.Parameters.AddWithValue("@BirthDate", (object?)customer.BirthDate ?? DBNull.Value);
                 command.Parameters.AddWithValue("@Category", customer.Category);
                 command.Parameters.AddWithValue("@LoyaltyPoints", customer.LoyaltyPoints);

@@ -16,9 +16,6 @@ namespace ReservArte_API.Models.DTOs;
 /// </summary>
 public class ServiceDtoIn
 {
-    [Required(ErrorMessage = "El ID de la organización es obligatorio")]
-    public int OrganizationId { get; set; }
-
     [Required(ErrorMessage = "El nombre del servicio es obligatorio")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "El nombre debe tener entre 2 y 100 caracteres")]
     public string Name { get; set; } = string.Empty;
@@ -58,7 +55,6 @@ public class ServiceDtoIn
 public class ServiceDtoOut
 {
     public int Id { get; set; }
-    public int OrganizationId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public int DurationMinutes { get; set; }
@@ -115,9 +111,6 @@ public class ServiceListDtoOut
 /// </summary>
 public class ServiceCategoryDtoIn
 {
-    [Required(ErrorMessage = "El ID de la organización es obligatorio")]
-    public int OrganizationId { get; set; }
-
     [Required(ErrorMessage = "El nombre de la categoría es obligatorio")]
     [StringLength(50, MinimumLength = 2, ErrorMessage = "El nombre debe tener entre 2 y 50 caracteres")]
     public string Name { get; set; } = string.Empty;
@@ -146,7 +139,6 @@ public class ServiceCategoryDtoIn
 public class ServiceCategoryDtoOut
 {
     public int Id { get; set; }
-    public int OrganizationId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Color { get; set; }
@@ -272,9 +264,6 @@ public class ServicePricingDtoOut
 /// </summary>
 public class ProductDtoIn
 {
-    [Required(ErrorMessage = "El ID de la organización es obligatorio")]
-    public int OrganizationId { get; set; }
-
     [Required(ErrorMessage = "El nombre del producto es obligatorio")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "El nombre debe tener entre 2 y 100 caracteres")]
     public string Name { get; set; } = string.Empty;
@@ -304,7 +293,6 @@ public class ProductDtoIn
 public class ProductDtoOut
 {
     public int Id { get; set; }
-    public int OrganizationId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Brand { get; set; }
@@ -381,9 +369,6 @@ public class ServiceProductDtoOut
 /// </summary>
 public class ServicePackageDtoIn
 {
-    [Required(ErrorMessage = "El ID de la organización es obligatorio")]
-    public int OrganizationId { get; set; }
-
     [Required(ErrorMessage = "El nombre del paquete es obligatorio")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "El nombre debe tener entre 2 y 100 caracteres")]
     public string Name { get; set; } = string.Empty;
@@ -417,7 +402,6 @@ public class ServicePackageDtoIn
 public class ServicePackageDtoOut
 {
     public int Id { get; set; }
-    public int OrganizationId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public decimal TotalPrice { get; set; }
@@ -519,9 +503,6 @@ public class ServicePackageItemDtoOut
 /// </summary>
 public class ServicePromotionDtoIn
 {
-    [Required(ErrorMessage = "El ID de la organización es obligatorio")]
-    public int OrganizationId { get; set; }
-
     public int? ServiceId { get; set; }
 
     public int? ServicePackageId { get; set; }
@@ -564,7 +545,6 @@ public class ServicePromotionDtoIn
 public class ServicePromotionDtoOut
 {
     public int Id { get; set; }
-    public int OrganizationId { get; set; }
     public int? ServiceId { get; set; }
     public string? ServiceName { get; set; }
     public int? ServicePackageId { get; set; }

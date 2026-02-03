@@ -7,7 +7,7 @@ public interface ICustomerRepository
 {
     #region Customer CRUD
     
-    Task<IEnumerable<CustomerListDtoOut>> GetAllAsync(int? organizationId = null);
+    Task<IEnumerable<CustomerListDtoOut>> GetAllAsync();
     Task<Customer?> GetByIdAsync(int id);
     Task<Customer?> GetByEmailAsync(string email);
     Task<Customer?> CreateAsync(Customer customer);

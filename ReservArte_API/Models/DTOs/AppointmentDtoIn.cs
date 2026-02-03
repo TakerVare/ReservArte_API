@@ -26,9 +26,6 @@ namespace ReservArte_API.Models.DTOs;
 public class AppointmentDtoIn
 {
     [Required]
-    public int OrganizationId { get; set; }
-    
-    [Required]
     public int CustomerId { get; set; }
     
     [Required]

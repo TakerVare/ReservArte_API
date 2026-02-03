@@ -6,7 +6,7 @@ public interface ICustomerService
 {
     #region Customer CRUD
     
-    Task<IEnumerable<CustomerListDtoOut>> GetAllAsync(int? organizationId = null);
+    Task<IEnumerable<CustomerListDtoOut>> GetAllAsync();
     Task<CustomerDtoOut?> GetByIdAsync(int id);
     Task<CustomerDtoOut?> CreateAsync(CustomerDtoIn customerDto);
     Task<CustomerDtoOut?> UpdateAsync(int id, CustomerDtoIn customerDto);

@@ -1,7 +1,9 @@
 namespace ReservArte_API.Models;
 
 /// <summary>
-/// Entidad de organización (negocio/empresa)
+/// Entidad de configuración del negocio (single-tenant).
+/// Almacena la información general de la empresa como nombre, dirección, contacto, etc.
+/// En arquitectura single-tenant, solo existirá un registro en esta tabla.
 /// </summary>
 public class Organization
 {

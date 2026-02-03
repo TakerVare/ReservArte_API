@@ -31,9 +31,9 @@ public class WaitingListService : IWaitingListService
         return await _waitingListRepository.GetByCustomerAsync(customerId);
     }
 
-    public async Task<IEnumerable<WaitingListDtoOut>> GetByOrganizationAsync(int organizationId)
+    public async Task<IEnumerable<WaitingListDtoOut>> GetAllAsync()
     {
-        return await _waitingListRepository.GetByOrganizationAsync(organizationId);
+        return await _waitingListRepository.GetAllAsync();
     }
 
     public async Task<WaitingListDtoOut?> AddToWaitingListAsync(WaitingListDtoIn dto)
@@ -59,11 +59,10 @@ public class WaitingListService : IWaitingListService
             throw new InvalidOperationException("La fecha de inicio no puede ser en el pasado");
 
         // Calcular prioridad
-        var priority = await _waitingListRepository.CalculatePriorityAsync(dto.CustomerId, dto.OrganizationId);
+        var priority = await _waitingListRepository.CalculatePriorityAsync(dto.CustomerId);
 
         var waitingList = new WaitingList
         {
-            OrganizationId = dto.OrganizationId,
             CustomerId = dto.CustomerId,
             ServiceId = dto.ServiceId,
             PreferredEmployeeId = dto.PreferredEmployeeId,
@@ -87,11 +86,11 @@ public class WaitingListService : IWaitingListService
     }
 
     public async Task<IEnumerable<WaitingListDtoOut>> NotifyMatchingCustomersAsync(
-        int organizationId, int serviceId, DateTime date, int? employeeId = null)
+        int serviceId, DateTime date, int? employeeId = null)
     {
         // Obtener clientes que coinciden con el slot liberado
         var matchingEntries = await _waitingListRepository.GetMatchingForSlotAsync(
-            organizationId, serviceId, date, employeeId);
+            serviceId, date, employeeId);
 
         var notified = new List<WaitingListDtoOut>();
 

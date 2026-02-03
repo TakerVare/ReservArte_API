@@ -25,7 +25,6 @@ namespace ReservArte_API.Models.DTOs;
 public class AppointmentDtoOut
 {
     public int Id { get; set; }
-    public int OrganizationId { get; set; }
     public int CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public int EmployeeId { get; set; }

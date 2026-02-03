@@ -5,7 +5,6 @@ namespace ReservArte_API.Models;
 /// </summary>
 public class Customer : User
 {
-    public int OrganizationId { get; set; }
     public DateTime? BirthDate { get; set; }
     public string Category { get; set; } = CustomerCategory.New;
     public int LoyaltyPoints { get; set; } = 0;

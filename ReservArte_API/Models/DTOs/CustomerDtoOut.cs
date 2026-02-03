@@ -28,8 +28,6 @@ public class CustomerDtoOut
     public string? Phone { get; set; }
     public string? ProfileImageUrl { get; set; }
     public string? BirthDate { get; set; } // Formato yyyy-MM-dd
-    public int OrganizationId { get; set; }
-    public string? OrganizationName { get; set; }
     public string Category { get; set; } = string.Empty;
     public int LoyaltyPoints { get; set; }
     public bool IsBlocked { get; set; }

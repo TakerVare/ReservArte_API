@@ -26,11 +26,10 @@ public class ServiceController : ControllerBase
     [HttpGet]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Employee},{Roles.Client}")]
     public async Task<ActionResult<IEnumerable<ServiceListDtoOut>>> GetAllServices(
-        [FromQuery] int? organizationId = null, 
         [FromQuery] int? categoryId = null, 
         [FromQuery] bool? isActive = null)
     {
-        var services = await _serviceService.GetAllServicesAsync(organizationId, categoryId, isActive);
+        var services = await _serviceService.GetAllServicesAsync(categoryId, isActive);
         return Ok(services);
     }
 
@@ -116,9 +115,9 @@ public class ServiceController : ControllerBase
     /// </summary>
     [HttpGet("categories")]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Employee},{Roles.Client}")]
-    public async Task<ActionResult<IEnumerable<ServiceCategoryDtoOut>>> GetAllCategories([FromQuery] int? organizationId = null)
+    public async Task<ActionResult<IEnumerable<ServiceCategoryDtoOut>>> GetAllCategories()
     {
-        var categories = await _serviceService.GetAllCategoriesAsync(organizationId);
+        var categories = await _serviceService.GetAllCategoriesAsync();
         return Ok(categories);
     }
 
@@ -333,9 +332,9 @@ public class ServiceController : ControllerBase
     /// </summary>
     [HttpGet("products")]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
-    public async Task<ActionResult<IEnumerable<ProductDtoOut>>> GetAllProducts([FromQuery] int? organizationId = null)
+    public async Task<ActionResult<IEnumerable<ProductDtoOut>>> GetAllProducts()
     {
-        var products = await _serviceService.GetAllProductsAsync(organizationId);
+        var products = await _serviceService.GetAllProductsAsync();
         return Ok(products);
     }
 
@@ -476,10 +475,9 @@ public class ServiceController : ControllerBase
     [HttpGet("packages")]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Employee},{Roles.Client}")]
     public async Task<ActionResult<IEnumerable<ServicePackageListDtoOut>>> GetAllPackages(
-        [FromQuery] int? organizationId = null, 
         [FromQuery] bool? isActive = null)
     {
-        var packages = await _serviceService.GetAllPackagesAsync(organizationId, isActive);
+        var packages = await _serviceService.GetAllPackagesAsync(isActive);
         return Ok(packages);
     }
 
@@ -625,10 +623,9 @@ public class ServiceController : ControllerBase
     [HttpGet("promotions")]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Employee},{Roles.Client}")]
     public async Task<ActionResult<IEnumerable<ServicePromotionDtoOut>>> GetAllPromotions(
-        [FromQuery] int? organizationId = null, 
         [FromQuery] bool? activeOnly = null)
     {
-        var promotions = await _serviceService.GetAllPromotionsAsync(organizationId, activeOnly);
+        var promotions = await _serviceService.GetAllPromotionsAsync(activeOnly);
         return Ok(promotions);
     }
 

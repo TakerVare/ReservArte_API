@@ -20,7 +20,7 @@ public class WaitingListRepository : IWaitingListRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT Id, OrganizationId, CustomerId, ServiceId, PreferredEmployeeId,
+        var query = @"SELECT Id, CustomerId, ServiceId, PreferredEmployeeId,
                      PreferredDate, DateRangeStart, DateRangeEnd, Priority, CreatedAt, NotifiedAt
                      FROM WaitingList WHERE Id = @Id";
         
@@ -41,7 +41,7 @@ public class WaitingListRepository : IWaitingListRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT wl.Id, wl.OrganizationId, wl.CustomerId, 
+        var query = @"SELECT wl.Id, wl.CustomerId, 
                      c.FirstName + ' ' + c.LastName as CustomerName, c.Category as CustomerCategory,
                      wl.ServiceId, s.Name as ServiceName,
                      wl.PreferredEmployeeId, e.FirstName + ' ' + e.LastName as PreferredEmployeeName,
@@ -72,7 +72,7 @@ public class WaitingListRepository : IWaitingListRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT wl.Id, wl.OrganizationId, wl.CustomerId, 
+        var query = @"SELECT wl.Id, wl.CustomerId, 
                      c.FirstName + ' ' + c.LastName as CustomerName, c.Category as CustomerCategory,
                      wl.ServiceId, s.Name as ServiceName,
                      wl.PreferredEmployeeId, e.FirstName + ' ' + e.LastName as PreferredEmployeeName,
@@ -97,14 +97,14 @@ public class WaitingListRepository : IWaitingListRepository
         return list;
     }
 
-    public async Task<IEnumerable<WaitingListDtoOut>> GetByOrganizationAsync(int organizationId)
+    public async Task<IEnumerable<WaitingListDtoOut>> GetAllAsync()
     {
         var list = new List<WaitingListDtoOut>();
         
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT wl.Id, wl.OrganizationId, wl.CustomerId, 
+        var query = @"SELECT wl.Id, wl.CustomerId, 
                      c.FirstName + ' ' + c.LastName as CustomerName, c.Category as CustomerCategory,
                      wl.ServiceId, s.Name as ServiceName,
                      wl.PreferredEmployeeId, e.FirstName + ' ' + e.LastName as PreferredEmployeeName,
@@ -114,12 +114,10 @@ public class WaitingListRepository : IWaitingListRepository
                      INNER JOIN Customers c ON wl.CustomerId = c.Id
                      INNER JOIN Services s ON wl.ServiceId = s.Id
                      LEFT JOIN Employees e ON wl.PreferredEmployeeId = e.Id
-                     WHERE wl.OrganizationId = @OrganizationId
-                     AND wl.NotifiedAt IS NULL
+                     WHERE wl.NotifiedAt IS NULL
                      ORDER BY wl.Priority, wl.CreatedAt";
         
         using var command = new SqlCommand(query, connection);
-        command.Parameters.AddWithValue("@OrganizationId", organizationId);
         
         using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -130,14 +128,14 @@ public class WaitingListRepository : IWaitingListRepository
         return list;
     }
 
-    public async Task<IEnumerable<WaitingListDtoOut>> GetMatchingForSlotAsync(int organizationId, int serviceId, DateTime date, int? employeeId = null)
+    public async Task<IEnumerable<WaitingListDtoOut>> GetMatchingForSlotAsync(int serviceId, DateTime date, int? employeeId = null)
     {
         var list = new List<WaitingListDtoOut>();
         
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT wl.Id, wl.OrganizationId, wl.CustomerId, 
+        var query = @"SELECT wl.Id, wl.CustomerId, 
                      c.FirstName + ' ' + c.LastName as CustomerName, c.Category as CustomerCategory,
                      wl.ServiceId, s.Name as ServiceName,
                      wl.PreferredEmployeeId, e.FirstName + ' ' + e.LastName as PreferredEmployeeName,
@@ -147,8 +145,7 @@ public class WaitingListRepository : IWaitingListRepository
                      INNER JOIN Customers c ON wl.CustomerId = c.Id
                      INNER JOIN Services s ON wl.ServiceId = s.Id
                      LEFT JOIN Employees e ON wl.PreferredEmployeeId = e.Id
-                     WHERE wl.OrganizationId = @OrganizationId
-                     AND wl.ServiceId = @ServiceId
+                     WHERE wl.ServiceId = @ServiceId
                      AND wl.NotifiedAt IS NULL
                      AND @Date >= wl.DateRangeStart
                      AND @Date <= wl.DateRangeEnd
@@ -162,7 +159,6 @@ public class WaitingListRepository : IWaitingListRepository
         query += " ORDER BY wl.Priority, wl.CreatedAt";
         
         using var command = new SqlCommand(query, connection);
-        command.Parameters.AddWithValue("@OrganizationId", organizationId);
         command.Parameters.AddWithValue("@ServiceId", serviceId);
         command.Parameters.AddWithValue("@Date", date);
         
@@ -186,15 +182,14 @@ public class WaitingListRepository : IWaitingListRepository
         await connection.OpenAsync();
         
         var query = @"INSERT INTO WaitingList 
-                     (OrganizationId, CustomerId, ServiceId, PreferredEmployeeId, 
+                     (CustomerId, ServiceId, PreferredEmployeeId, 
                       PreferredDate, DateRangeStart, DateRangeEnd, Priority, CreatedAt)
                      VALUES 
-                     (@OrganizationId, @CustomerId, @ServiceId, @PreferredEmployeeId, 
+                     (@CustomerId, @ServiceId, @PreferredEmployeeId, 
                       @PreferredDate, @DateRangeStart, @DateRangeEnd, @Priority, @CreatedAt);
                      SELECT CAST(SCOPE_IDENTITY() as int)";
         
         using var command = new SqlCommand(query, connection);
-        command.Parameters.AddWithValue("@OrganizationId", waitingList.OrganizationId);
         command.Parameters.AddWithValue("@CustomerId", waitingList.CustomerId);
         command.Parameters.AddWithValue("@ServiceId", waitingList.ServiceId);
         command.Parameters.AddWithValue("@PreferredEmployeeId", (object?)waitingList.PreferredEmployeeId ?? DBNull.Value);
@@ -239,7 +234,7 @@ public class WaitingListRepository : IWaitingListRepository
         return rowsAffected > 0;
     }
 
-    public async Task<int> CalculatePriorityAsync(int customerId, int organizationId)
+    public async Task<int> CalculatePriorityAsync(int customerId)
     {
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -248,14 +243,12 @@ public class WaitingListRepository : IWaitingListRepository
         var query = @"SELECT c.Category, 
                      (SELECT COUNT(*) FROM Appointments a 
                       WHERE a.CustomerId = @CustomerId 
-                      AND a.OrganizationId = @OrganizationId 
                       AND a.Status = 'completed') as CompletedServices
                      FROM Customers c
                      WHERE c.Id = @CustomerId";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@CustomerId", customerId);
-        command.Parameters.AddWithValue("@OrganizationId", organizationId);
         
         using var reader = await command.ExecuteReaderAsync();
         if (await reader.ReadAsync())
@@ -278,7 +271,6 @@ public class WaitingListRepository : IWaitingListRepository
         var waitingList = new WaitingList
         {
             Id = reader.GetInt32(reader.GetOrdinal("Id")),
-            OrganizationId = reader.GetInt32(reader.GetOrdinal("OrganizationId")),
             CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),
             ServiceId = reader.GetInt32(reader.GetOrdinal("ServiceId")),
             DateRangeStart = reader.GetDateTime(reader.GetOrdinal("DateRangeStart")),
@@ -307,7 +299,6 @@ public class WaitingListRepository : IWaitingListRepository
         var dto = new WaitingListDtoOut
         {
             Id = reader.GetInt32(reader.GetOrdinal("Id")),
-            OrganizationId = reader.GetInt32(reader.GetOrdinal("OrganizationId")),
             CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),
             CustomerName = reader.GetString(reader.GetOrdinal("CustomerName")),
             ServiceId = reader.GetInt32(reader.GetOrdinal("ServiceId")),

@@ -18,7 +18,6 @@ namespace ReservArte_API.Models.DTOs;
 /// - FirstName y LastName son obligatorios (2-100 caracteres)
 /// - Email es obligatorio y debe tener formato válido
 /// - Phone es opcional pero si se proporciona debe tener formato válido
-/// - OrganizationId es obligatorio para asociar el cliente a una organización
 /// </summary>
 public class CustomerDtoIn
 {
@@ -44,6 +43,4 @@ public class CustomerDtoIn
     public string PreferredContactMethod { get; set; } = ContactMethod.Email;
 
     public bool MarketingConsent { get; set; } = false;
-
-    public int OrganizationId { get; set; }
 }

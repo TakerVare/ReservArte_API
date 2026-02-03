@@ -42,9 +42,6 @@ namespace ReservArte_API.Models.DTOs;
 /// </summary>
 public class AgendaQueryDto
 {
-    [Required]
-    public int OrganizationId { get; set; }
-    
     /// <summary>
     /// Fecha de inicio del rango
     /// </summary>
@@ -80,7 +77,6 @@ public class AgendaResponseDto
 {
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
-    public int OrganizationId { get; set; }
     public string ViewType { get; set; } = string.Empty;
     
     /// <summary>

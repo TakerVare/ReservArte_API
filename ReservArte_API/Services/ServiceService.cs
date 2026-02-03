@@ -16,9 +16,9 @@ public class ServiceService : IServiceService
 
     #region Service CRUD
 
-    public async Task<IEnumerable<ServiceListDtoOut>> GetAllServicesAsync(int? organizationId = null, int? categoryId = null, bool? isActive = null)
+    public async Task<IEnumerable<ServiceListDtoOut>> GetAllServicesAsync(int? categoryId = null, bool? isActive = null)
     {
-        return await _repository.GetAllServicesAsync(organizationId, categoryId, isActive);
+        return await _repository.GetAllServicesAsync(categoryId, isActive);
     }
 
     public async Task<ServiceDtoOut?> GetServiceByIdAsync(int id)
@@ -38,7 +38,6 @@ public class ServiceService : IServiceService
     {
         var service = new Service
         {
-            OrganizationId = serviceDto.OrganizationId,
             Name = serviceDto.Name,
             Description = serviceDto.Description,
             DurationMinutes = serviceDto.DurationMinutes,
@@ -87,9 +86,9 @@ public class ServiceService : IServiceService
 
     #region ServiceCategory CRUD
 
-    public async Task<IEnumerable<ServiceCategoryDtoOut>> GetAllCategoriesAsync(int? organizationId = null)
+    public async Task<IEnumerable<ServiceCategoryDtoOut>> GetAllCategoriesAsync()
     {
-        return await _repository.GetAllCategoriesAsync(organizationId);
+        return await _repository.GetAllCategoriesAsync();
     }
 
     public async Task<ServiceCategoryDtoOut?> GetCategoryByIdAsync(int id)
@@ -104,7 +103,6 @@ public class ServiceService : IServiceService
     {
         var category = new ServiceCategory
         {
-            OrganizationId = categoryDto.OrganizationId,
             Name = categoryDto.Name,
             Description = categoryDto.Description,
             Color = categoryDto.Color,
@@ -239,9 +237,9 @@ public class ServiceService : IServiceService
 
     #region Product CRUD
 
-    public async Task<IEnumerable<ProductDtoOut>> GetAllProductsAsync(int? organizationId = null)
+    public async Task<IEnumerable<ProductDtoOut>> GetAllProductsAsync()
     {
-        return await _repository.GetAllProductsAsync(organizationId);
+        return await _repository.GetAllProductsAsync();
     }
 
     public async Task<ProductDtoOut?> GetProductByIdAsync(int id)
@@ -256,7 +254,6 @@ public class ServiceService : IServiceService
     {
         var product = new Product
         {
-            OrganizationId = productDto.OrganizationId,
             Name = productDto.Name,
             Description = productDto.Description,
             Brand = productDto.Brand,
@@ -341,9 +338,9 @@ public class ServiceService : IServiceService
 
     #region ServicePackage CRUD
 
-    public async Task<IEnumerable<ServicePackageListDtoOut>> GetAllPackagesAsync(int? organizationId = null, bool? isActive = null)
+    public async Task<IEnumerable<ServicePackageListDtoOut>> GetAllPackagesAsync(bool? isActive = null)
     {
-        return await _repository.GetAllPackagesAsync(organizationId, isActive);
+        return await _repository.GetAllPackagesAsync(isActive);
     }
 
     public async Task<ServicePackageDtoOut?> GetPackageByIdAsync(int id)
@@ -361,7 +358,6 @@ public class ServiceService : IServiceService
     {
         var package = new ServicePackage
         {
-            OrganizationId = packageDto.OrganizationId,
             Name = packageDto.Name,
             Description = packageDto.Description,
             TotalPrice = packageDto.TotalPrice,
@@ -457,9 +453,9 @@ public class ServiceService : IServiceService
 
     #region ServicePromotion CRUD
 
-    public async Task<IEnumerable<ServicePromotionDtoOut>> GetAllPromotionsAsync(int? organizationId = null, bool? activeOnly = null)
+    public async Task<IEnumerable<ServicePromotionDtoOut>> GetAllPromotionsAsync(bool? activeOnly = null)
     {
-        return await _repository.GetAllPromotionsAsync(organizationId, activeOnly);
+        return await _repository.GetAllPromotionsAsync(activeOnly);
     }
 
     public async Task<ServicePromotionDtoOut?> GetPromotionByIdAsync(int id)
@@ -499,7 +495,6 @@ public class ServiceService : IServiceService
 
         var promotion = new ServicePromotion
         {
-            OrganizationId = promotionDto.OrganizationId,
             ServiceId = promotionDto.ServiceId,
             ServicePackageId = promotionDto.ServicePackageId,
             Name = promotionDto.Name,
@@ -574,7 +569,6 @@ public class ServiceService : IServiceService
         return new ServiceDtoOut
         {
             Id = service.Id,
-            OrganizationId = service.OrganizationId,
             Name = service.Name,
             Description = service.Description,
             DurationMinutes = service.DurationMinutes,
@@ -598,7 +592,6 @@ public class ServiceService : IServiceService
         return new ServiceCategoryDtoOut
         {
             Id = category.Id,
-            OrganizationId = category.OrganizationId,
             Name = category.Name,
             Description = category.Description,
             Color = category.Color,
@@ -639,7 +632,6 @@ public class ServiceService : IServiceService
         return new ProductDtoOut
         {
             Id = product.Id,
-            OrganizationId = product.OrganizationId,
             Name = product.Name,
             Description = product.Description,
             Brand = product.Brand,
@@ -672,7 +664,6 @@ public class ServiceService : IServiceService
         return new ServicePackageDtoOut
         {
             Id = package.Id,
-            OrganizationId = package.OrganizationId,
             Name = package.Name,
             Description = package.Description,
             TotalPrice = package.TotalPrice,
@@ -702,7 +693,6 @@ public class ServiceService : IServiceService
         return new ServicePromotionDtoOut
         {
             Id = promotion.Id,
-            OrganizationId = promotion.OrganizationId,
             ServiceId = promotion.ServiceId,
             ServiceName = promotion.ServiceName,
             ServicePackageId = promotion.ServicePackageId,

@@ -17,7 +17,7 @@ public class ServiceRepository : IServiceRepository
 
     #region Service CRUD
 
-    public async Task<IEnumerable<ServiceListDtoOut>> GetAllServicesAsync(int? organizationId = null, int? categoryId = null, bool? isActive = null)
+    public async Task<IEnumerable<ServiceListDtoOut>> GetAllServicesAsync(int? categoryId = null, bool? isActive = null)
     {
         var services = new List<ServiceListDtoOut>();
 
@@ -30,8 +30,6 @@ public class ServiceRepository : IServiceRepository
                          LEFT JOIN ServiceCategories sc ON s.CategoryId = sc.Id
                          WHERE 1=1";
 
-            if (organizationId.HasValue)
-                query += " AND s.OrganizationId = @OrganizationId";
             if (categoryId.HasValue)
                 query += " AND s.CategoryId = @CategoryId";
             if (isActive.HasValue)
@@ -41,8 +39,6 @@ public class ServiceRepository : IServiceRepository
 
             using (var command = new SqlCommand(query, connection))
             {
-                if (organizationId.HasValue)
-                    command.Parameters.AddWithValue("@OrganizationId", organizationId.Value);
                 if (categoryId.HasValue)
                     command.Parameters.AddWithValue("@CategoryId", categoryId.Value);
                 if (isActive.HasValue)
@@ -77,7 +73,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"SELECT s.Id, s.OrganizationId, s.Name, s.Description, s.DurationMinutes, 
+            var query = @"SELECT s.Id, s.Name, s.Description, s.DurationMinutes, 
                                 s.BasePrice, s.CategoryId, s.ImageUrl, s.IsActive, s.RequiresAllergyTest,
                                 s.AllergyTestHoursBefore, s.CreatedAt, s.UpdatedAt, sc.Name as CategoryName
                          FROM Services s
@@ -95,19 +91,18 @@ public class ServiceRepository : IServiceRepository
                         return new Service
                         {
                             Id = reader.GetInt32(0),
-                            OrganizationId = reader.GetInt32(1),
-                            Name = reader.GetString(2),
-                            Description = reader.IsDBNull(3) ? null : reader.GetString(3),
-                            DurationMinutes = reader.GetInt32(4),
-                            BasePrice = reader.GetDecimal(5),
-                            CategoryId = reader.IsDBNull(6) ? null : reader.GetInt32(6),
-                            ImageUrl = reader.IsDBNull(7) ? null : reader.GetString(7),
-                            IsActive = reader.GetBoolean(8),
-                            RequiresAllergyTest = reader.GetBoolean(9),
-                            AllergyTestHoursBefore = reader.GetInt32(10),
-                            CreatedAt = reader.GetDateTime(11),
-                            UpdatedAt = reader.IsDBNull(12) ? null : reader.GetDateTime(12),
-                            CategoryName = reader.IsDBNull(13) ? null : reader.GetString(13)
+                            Name = reader.GetString(1),
+                            Description = reader.IsDBNull(2) ? null : reader.GetString(2),
+                            DurationMinutes = reader.GetInt32(3),
+                            BasePrice = reader.GetDecimal(4),
+                            CategoryId = reader.IsDBNull(5) ? null : reader.GetInt32(5),
+                            ImageUrl = reader.IsDBNull(6) ? null : reader.GetString(6),
+                            IsActive = reader.GetBoolean(7),
+                            RequiresAllergyTest = reader.GetBoolean(8),
+                            AllergyTestHoursBefore = reader.GetInt32(9),
+                            CreatedAt = reader.GetDateTime(10),
+                            UpdatedAt = reader.IsDBNull(11) ? null : reader.GetDateTime(11),
+                            CategoryName = reader.IsDBNull(12) ? null : reader.GetString(12)
                         };
                     }
                 }
@@ -122,15 +117,14 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"INSERT INTO Services (OrganizationId, Name, Description, DurationMinutes, BasePrice, 
+            var query = @"INSERT INTO Services (Name, Description, DurationMinutes, BasePrice, 
                                 CategoryId, ImageUrl, IsActive, RequiresAllergyTest, AllergyTestHoursBefore, CreatedAt)
-                         VALUES (@OrganizationId, @Name, @Description, @DurationMinutes, @BasePrice, 
+                         VALUES (@Name, @Description, @DurationMinutes, @BasePrice, 
                                 @CategoryId, @ImageUrl, @IsActive, @RequiresAllergyTest, @AllergyTestHoursBefore, @CreatedAt);
                          SELECT CAST(SCOPE_IDENTITY() as int)";
 
             using (var command = new SqlCommand(query, connection))
             {
-                command.Parameters.AddWithValue("@OrganizationId", service.OrganizationId);
                 command.Parameters.AddWithValue("@Name", service.Name);
                 command.Parameters.AddWithValue("@Description", (object?)service.Description ?? DBNull.Value);
                 command.Parameters.AddWithValue("@DurationMinutes", service.DurationMinutes);
@@ -216,27 +210,19 @@ public class ServiceRepository : IServiceRepository
 
     #region ServiceCategory CRUD
 
-    public async Task<IEnumerable<ServiceCategoryDtoOut>> GetAllCategoriesAsync(int? organizationId = null)
+    public async Task<IEnumerable<ServiceCategoryDtoOut>> GetAllCategoriesAsync()
     {
         var categories = new List<ServiceCategoryDtoOut>();
 
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"SELECT Id, OrganizationId, Name, Description, Color, DisplayOrder, IsActive, CreatedAt
+            var query = @"SELECT Id, Name, Description, Color, DisplayOrder, IsActive, CreatedAt
                          FROM ServiceCategories
-                         WHERE 1=1";
-
-            if (organizationId.HasValue)
-                query += " AND OrganizationId = @OrganizationId";
-
-            query += " ORDER BY DisplayOrder, Name";
+                         ORDER BY DisplayOrder, Name";
 
             using (var command = new SqlCommand(query, connection))
             {
-                if (organizationId.HasValue)
-                    command.Parameters.AddWithValue("@OrganizationId", organizationId.Value);
-
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     while (await reader.ReadAsync())
@@ -244,13 +230,12 @@ public class ServiceRepository : IServiceRepository
                         categories.Add(new ServiceCategoryDtoOut
                         {
                             Id = reader.GetInt32(0),
-                            OrganizationId = reader.GetInt32(1),
-                            Name = reader.GetString(2),
-                            Description = reader.IsDBNull(3) ? null : reader.GetString(3),
-                            Color = reader.IsDBNull(4) ? null : reader.GetString(4),
-                            DisplayOrder = reader.GetInt32(5),
-                            IsActive = reader.GetBoolean(6),
-                            CreatedAt = reader.GetDateTime(7).ToString("yyyy-MM-ddTHH:mm:ssZ")
+                            Name = reader.GetString(1),
+                            Description = reader.IsDBNull(2) ? null : reader.GetString(2),
+                            Color = reader.IsDBNull(3) ? null : reader.GetString(3),
+                            DisplayOrder = reader.GetInt32(4),
+                            IsActive = reader.GetBoolean(5),
+                            CreatedAt = reader.GetDateTime(6).ToString("yyyy-MM-ddTHH:mm:ssZ")
                         });
                     }
                 }
@@ -265,7 +250,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"SELECT Id, OrganizationId, Name, Description, Color, DisplayOrder, IsActive, CreatedAt
+            var query = @"SELECT Id, Name, Description, Color, DisplayOrder, IsActive, CreatedAt
                          FROM ServiceCategories WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
@@ -279,13 +264,12 @@ public class ServiceRepository : IServiceRepository
                         return new ServiceCategory
                         {
                             Id = reader.GetInt32(0),
-                            OrganizationId = reader.GetInt32(1),
-                            Name = reader.GetString(2),
-                            Description = reader.IsDBNull(3) ? null : reader.GetString(3),
-                            Color = reader.IsDBNull(4) ? null : reader.GetString(4),
-                            DisplayOrder = reader.GetInt32(5),
-                            IsActive = reader.GetBoolean(6),
-                            CreatedAt = reader.GetDateTime(7)
+                            Name = reader.GetString(1),
+                            Description = reader.IsDBNull(2) ? null : reader.GetString(2),
+                            Color = reader.IsDBNull(3) ? null : reader.GetString(3),
+                            DisplayOrder = reader.GetInt32(4),
+                            IsActive = reader.GetBoolean(5),
+                            CreatedAt = reader.GetDateTime(6)
                         };
                     }
                 }
@@ -300,13 +284,12 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"INSERT INTO ServiceCategories (OrganizationId, Name, Description, Color, DisplayOrder, IsActive, CreatedAt)
-                         VALUES (@OrganizationId, @Name, @Description, @Color, @DisplayOrder, @IsActive, @CreatedAt);
+            var query = @"INSERT INTO ServiceCategories (Name, Description, Color, DisplayOrder, IsActive, CreatedAt)
+                         VALUES (@Name, @Description, @Color, @DisplayOrder, @IsActive, @CreatedAt);
                          SELECT CAST(SCOPE_IDENTITY() as int)";
 
             using (var command = new SqlCommand(query, connection))
             {
-                command.Parameters.AddWithValue("@OrganizationId", category.OrganizationId);
                 command.Parameters.AddWithValue("@Name", category.Name);
                 command.Parameters.AddWithValue("@Description", (object?)category.Description ?? DBNull.Value);
                 command.Parameters.AddWithValue("@Color", (object?)category.Color ?? DBNull.Value);
@@ -649,26 +632,19 @@ public class ServiceRepository : IServiceRepository
 
     #region Product CRUD
 
-    public async Task<IEnumerable<ProductDtoOut>> GetAllProductsAsync(int? organizationId = null)
+    public async Task<IEnumerable<ProductDtoOut>> GetAllProductsAsync()
     {
         var products = new List<ProductDtoOut>();
 
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"SELECT Id, OrganizationId, Name, Description, Brand, Sku, IsActive, CreatedAt
-                         FROM Products WHERE 1=1";
-
-            if (organizationId.HasValue)
-                query += " AND OrganizationId = @OrganizationId";
-
-            query += " ORDER BY Name";
+            var query = @"SELECT Id, Name, Description, Brand, Sku, IsActive, CreatedAt
+                         FROM Products
+                         ORDER BY Name";
 
             using (var command = new SqlCommand(query, connection))
             {
-                if (organizationId.HasValue)
-                    command.Parameters.AddWithValue("@OrganizationId", organizationId.Value);
-
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     while (await reader.ReadAsync())
@@ -676,13 +652,12 @@ public class ServiceRepository : IServiceRepository
                         products.Add(new ProductDtoOut
                         {
                             Id = reader.GetInt32(0),
-                            OrganizationId = reader.GetInt32(1),
-                            Name = reader.GetString(2),
-                            Description = reader.IsDBNull(3) ? null : reader.GetString(3),
-                            Brand = reader.IsDBNull(4) ? null : reader.GetString(4),
-                            Sku = reader.IsDBNull(5) ? null : reader.GetString(5),
-                            IsActive = reader.GetBoolean(6),
-                            CreatedAt = reader.GetDateTime(7).ToString("yyyy-MM-ddTHH:mm:ssZ")
+                            Name = reader.GetString(1),
+                            Description = reader.IsDBNull(2) ? null : reader.GetString(2),
+                            Brand = reader.IsDBNull(3) ? null : reader.GetString(3),
+                            Sku = reader.IsDBNull(4) ? null : reader.GetString(4),
+                            IsActive = reader.GetBoolean(5),
+                            CreatedAt = reader.GetDateTime(6).ToString("yyyy-MM-ddTHH:mm:ssZ")
                         });
                     }
                 }
@@ -697,7 +672,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"SELECT Id, OrganizationId, Name, Description, Brand, Sku, IsActive, CreatedAt
+            var query = @"SELECT Id, Name, Description, Brand, Sku, IsActive, CreatedAt
                          FROM Products WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
@@ -711,13 +686,12 @@ public class ServiceRepository : IServiceRepository
                         return new Product
                         {
                             Id = reader.GetInt32(0),
-                            OrganizationId = reader.GetInt32(1),
-                            Name = reader.GetString(2),
-                            Description = reader.IsDBNull(3) ? null : reader.GetString(3),
-                            Brand = reader.IsDBNull(4) ? null : reader.GetString(4),
-                            Sku = reader.IsDBNull(5) ? null : reader.GetString(5),
-                            IsActive = reader.GetBoolean(6),
-                            CreatedAt = reader.GetDateTime(7)
+                            Name = reader.GetString(1),
+                            Description = reader.IsDBNull(2) ? null : reader.GetString(2),
+                            Brand = reader.IsDBNull(3) ? null : reader.GetString(3),
+                            Sku = reader.IsDBNull(4) ? null : reader.GetString(4),
+                            IsActive = reader.GetBoolean(5),
+                            CreatedAt = reader.GetDateTime(6)
                         };
                     }
                 }
@@ -732,13 +706,12 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"INSERT INTO Products (OrganizationId, Name, Description, Brand, Sku, IsActive, CreatedAt)
-                         VALUES (@OrganizationId, @Name, @Description, @Brand, @Sku, @IsActive, @CreatedAt);
+            var query = @"INSERT INTO Products (Name, Description, Brand, Sku, IsActive, CreatedAt)
+                         VALUES (@Name, @Description, @Brand, @Sku, @IsActive, @CreatedAt);
                          SELECT CAST(SCOPE_IDENTITY() as int)";
 
             using (var command = new SqlCommand(query, connection))
             {
-                command.Parameters.AddWithValue("@OrganizationId", product.OrganizationId);
                 command.Parameters.AddWithValue("@Name", product.Name);
                 command.Parameters.AddWithValue("@Description", (object?)product.Description ?? DBNull.Value);
                 command.Parameters.AddWithValue("@Brand", (object?)product.Brand ?? DBNull.Value);
@@ -895,7 +868,7 @@ public class ServiceRepository : IServiceRepository
 
     #region ServicePackage CRUD
 
-    public async Task<IEnumerable<ServicePackageListDtoOut>> GetAllPackagesAsync(int? organizationId = null, bool? isActive = null)
+    public async Task<IEnumerable<ServicePackageListDtoOut>> GetAllPackagesAsync(bool? isActive = null)
     {
         var packages = new List<ServicePackageListDtoOut>();
 
@@ -911,8 +884,6 @@ public class ServiceRepository : IServiceRepository
                          LEFT JOIN Services s ON spi.ServiceId = s.Id
                          WHERE 1=1";
 
-            if (organizationId.HasValue)
-                query += " AND sp.OrganizationId = @OrganizationId";
             if (isActive.HasValue)
                 query += " AND sp.IsActive = @IsActive";
 
@@ -922,8 +893,6 @@ public class ServiceRepository : IServiceRepository
 
             using (var command = new SqlCommand(query, connection))
             {
-                if (organizationId.HasValue)
-                    command.Parameters.AddWithValue("@OrganizationId", organizationId.Value);
                 if (isActive.HasValue)
                     command.Parameters.AddWithValue("@IsActive", isActive.Value);
 
@@ -956,7 +925,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"SELECT Id, OrganizationId, Name, Description, TotalPrice, DiscountPercentage, 
+            var query = @"SELECT Id, Name, Description, TotalPrice, DiscountPercentage, 
                                 ImageUrl, IsActive, CreatedAt, UpdatedAt
                          FROM ServicePackages WHERE Id = @Id";
 
@@ -971,15 +940,14 @@ public class ServiceRepository : IServiceRepository
                         return new ServicePackage
                         {
                             Id = reader.GetInt32(0),
-                            OrganizationId = reader.GetInt32(1),
-                            Name = reader.GetString(2),
-                            Description = reader.IsDBNull(3) ? null : reader.GetString(3),
-                            TotalPrice = reader.GetDecimal(4),
-                            DiscountPercentage = reader.GetDecimal(5),
-                            ImageUrl = reader.IsDBNull(6) ? null : reader.GetString(6),
-                            IsActive = reader.GetBoolean(7),
-                            CreatedAt = reader.GetDateTime(8),
-                            UpdatedAt = reader.IsDBNull(9) ? null : reader.GetDateTime(9)
+                            Name = reader.GetString(1),
+                            Description = reader.IsDBNull(2) ? null : reader.GetString(2),
+                            TotalPrice = reader.GetDecimal(3),
+                            DiscountPercentage = reader.GetDecimal(4),
+                            ImageUrl = reader.IsDBNull(5) ? null : reader.GetString(5),
+                            IsActive = reader.GetBoolean(6),
+                            CreatedAt = reader.GetDateTime(7),
+                            UpdatedAt = reader.IsDBNull(8) ? null : reader.GetDateTime(8)
                         };
                     }
                 }
@@ -994,15 +962,14 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"INSERT INTO ServicePackages (OrganizationId, Name, Description, TotalPrice, 
+            var query = @"INSERT INTO ServicePackages (Name, Description, TotalPrice, 
                                 DiscountPercentage, ImageUrl, IsActive, CreatedAt)
-                         VALUES (@OrganizationId, @Name, @Description, @TotalPrice, 
+                         VALUES (@Name, @Description, @TotalPrice, 
                                 @DiscountPercentage, @ImageUrl, @IsActive, @CreatedAt);
                          SELECT CAST(SCOPE_IDENTITY() as int)";
 
             using (var command = new SqlCommand(query, connection))
             {
-                command.Parameters.AddWithValue("@OrganizationId", package.OrganizationId);
                 command.Parameters.AddWithValue("@Name", package.Name);
                 command.Parameters.AddWithValue("@Description", (object?)package.Description ?? DBNull.Value);
                 command.Parameters.AddWithValue("@TotalPrice", package.TotalPrice);
@@ -1187,14 +1154,14 @@ public class ServiceRepository : IServiceRepository
 
     #region ServicePromotion CRUD
 
-    public async Task<IEnumerable<ServicePromotionDtoOut>> GetAllPromotionsAsync(int? organizationId = null, bool? activeOnly = null)
+    public async Task<IEnumerable<ServicePromotionDtoOut>> GetAllPromotionsAsync(bool? activeOnly = null)
     {
         var promotions = new List<ServicePromotionDtoOut>();
 
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"SELECT p.Id, p.OrganizationId, p.ServiceId, s.Name as ServiceName, 
+            var query = @"SELECT p.Id, p.ServiceId, s.Name as ServiceName, 
                                 p.ServicePackageId, sp.Name as PackageName,
                                 p.Name, p.Description, p.DiscountPercentage, p.DiscountAmount,
                                 p.StartDate, p.EndDate, p.IsSeasonalService, p.IsActive, p.CreatedAt
@@ -1203,8 +1170,6 @@ public class ServiceRepository : IServiceRepository
                          LEFT JOIN ServicePackages sp ON p.ServicePackageId = sp.Id
                          WHERE 1=1";
 
-            if (organizationId.HasValue)
-                query += " AND p.OrganizationId = @OrganizationId";
             if (activeOnly == true)
                 query += " AND p.IsActive = 1 AND GETUTCDATE() BETWEEN p.StartDate AND p.EndDate";
 
@@ -1212,35 +1177,31 @@ public class ServiceRepository : IServiceRepository
 
             using (var command = new SqlCommand(query, connection))
             {
-                if (organizationId.HasValue)
-                    command.Parameters.AddWithValue("@OrganizationId", organizationId.Value);
-
                 using (var reader = await command.ExecuteReaderAsync())
                 {
                     while (await reader.ReadAsync())
                     {
-                        var startDate = reader.GetDateTime(10);
-                        var endDate = reader.GetDateTime(11);
-                        var isActive = reader.GetBoolean(13);
+                        var startDate = reader.GetDateTime(9);
+                        var endDate = reader.GetDateTime(10);
+                        var isActive = reader.GetBoolean(12);
 
                         promotions.Add(new ServicePromotionDtoOut
                         {
                             Id = reader.GetInt32(0),
-                            OrganizationId = reader.GetInt32(1),
-                            ServiceId = reader.IsDBNull(2) ? null : reader.GetInt32(2),
-                            ServiceName = reader.IsDBNull(3) ? null : reader.GetString(3),
-                            ServicePackageId = reader.IsDBNull(4) ? null : reader.GetInt32(4),
-                            PackageName = reader.IsDBNull(5) ? null : reader.GetString(5),
-                            Name = reader.GetString(6),
-                            Description = reader.IsDBNull(7) ? null : reader.GetString(7),
-                            DiscountPercentage = reader.GetDecimal(8),
-                            DiscountAmount = reader.IsDBNull(9) ? null : reader.GetDecimal(9),
+                            ServiceId = reader.IsDBNull(1) ? null : reader.GetInt32(1),
+                            ServiceName = reader.IsDBNull(2) ? null : reader.GetString(2),
+                            ServicePackageId = reader.IsDBNull(3) ? null : reader.GetInt32(3),
+                            PackageName = reader.IsDBNull(4) ? null : reader.GetString(4),
+                            Name = reader.GetString(5),
+                            Description = reader.IsDBNull(6) ? null : reader.GetString(6),
+                            DiscountPercentage = reader.GetDecimal(7),
+                            DiscountAmount = reader.IsDBNull(8) ? null : reader.GetDecimal(8),
                             StartDate = startDate.ToString("yyyy-MM-dd"),
                             EndDate = endDate.ToString("yyyy-MM-dd"),
-                            IsSeasonalService = reader.GetBoolean(12),
+                            IsSeasonalService = reader.GetBoolean(11),
                             IsActive = isActive,
                             IsCurrentlyActive = isActive && DateTime.UtcNow >= startDate && DateTime.UtcNow <= endDate,
-                            CreatedAt = reader.GetDateTime(14).ToString("yyyy-MM-ddTHH:mm:ssZ")
+                            CreatedAt = reader.GetDateTime(13).ToString("yyyy-MM-ddTHH:mm:ssZ")
                         });
                     }
                 }
@@ -1255,7 +1216,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"SELECT p.Id, p.OrganizationId, p.ServiceId, s.Name as ServiceName, 
+            var query = @"SELECT p.Id, p.ServiceId, s.Name as ServiceName, 
                                 p.ServicePackageId, sp.Name as PackageName,
                                 p.Name, p.Description, p.DiscountPercentage, p.DiscountAmount,
                                 p.StartDate, p.EndDate, p.IsSeasonalService, p.IsActive, p.CreatedAt
@@ -1275,20 +1236,19 @@ public class ServiceRepository : IServiceRepository
                         return new ServicePromotion
                         {
                             Id = reader.GetInt32(0),
-                            OrganizationId = reader.GetInt32(1),
-                            ServiceId = reader.IsDBNull(2) ? null : reader.GetInt32(2),
-                            ServiceName = reader.IsDBNull(3) ? null : reader.GetString(3),
-                            ServicePackageId = reader.IsDBNull(4) ? null : reader.GetInt32(4),
-                            PackageName = reader.IsDBNull(5) ? null : reader.GetString(5),
-                            Name = reader.GetString(6),
-                            Description = reader.IsDBNull(7) ? null : reader.GetString(7),
-                            DiscountPercentage = reader.GetDecimal(8),
-                            DiscountAmount = reader.IsDBNull(9) ? null : reader.GetDecimal(9),
-                            StartDate = reader.GetDateTime(10),
-                            EndDate = reader.GetDateTime(11),
-                            IsSeasonalService = reader.GetBoolean(12),
-                            IsActive = reader.GetBoolean(13),
-                            CreatedAt = reader.GetDateTime(14)
+                            ServiceId = reader.IsDBNull(1) ? null : reader.GetInt32(1),
+                            ServiceName = reader.IsDBNull(2) ? null : reader.GetString(2),
+                            ServicePackageId = reader.IsDBNull(3) ? null : reader.GetInt32(3),
+                            PackageName = reader.IsDBNull(4) ? null : reader.GetString(4),
+                            Name = reader.GetString(5),
+                            Description = reader.IsDBNull(6) ? null : reader.GetString(6),
+                            DiscountPercentage = reader.GetDecimal(7),
+                            DiscountAmount = reader.IsDBNull(8) ? null : reader.GetDecimal(8),
+                            StartDate = reader.GetDateTime(9),
+                            EndDate = reader.GetDateTime(10),
+                            IsSeasonalService = reader.GetBoolean(11),
+                            IsActive = reader.GetBoolean(12),
+                            CreatedAt = reader.GetDateTime(13)
                         };
                     }
                 }
@@ -1303,17 +1263,16 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"INSERT INTO ServicePromotions (OrganizationId, ServiceId, ServicePackageId, Name, 
+            var query = @"INSERT INTO ServicePromotions (ServiceId, ServicePackageId, Name, 
                                 Description, DiscountPercentage, DiscountAmount, StartDate, EndDate, 
                                 IsSeasonalService, IsActive, CreatedAt)
-                         VALUES (@OrganizationId, @ServiceId, @ServicePackageId, @Name, 
+                         VALUES (@ServiceId, @ServicePackageId, @Name, 
                                 @Description, @DiscountPercentage, @DiscountAmount, @StartDate, @EndDate, 
                                 @IsSeasonalService, @IsActive, @CreatedAt);
                          SELECT CAST(SCOPE_IDENTITY() as int)";
 
             using (var command = new SqlCommand(query, connection))
             {
-                command.Parameters.AddWithValue("@OrganizationId", promotion.OrganizationId);
                 command.Parameters.AddWithValue("@ServiceId", (object?)promotion.ServiceId ?? DBNull.Value);
                 command.Parameters.AddWithValue("@ServicePackageId", (object?)promotion.ServicePackageId ?? DBNull.Value);
                 command.Parameters.AddWithValue("@Name", promotion.Name);
@@ -1403,7 +1362,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"SELECT p.Id, p.OrganizationId, p.ServiceId, s.Name as ServiceName, 
+            var query = @"SELECT p.Id, p.ServiceId, s.Name as ServiceName, 
                                 p.ServicePackageId, sp.Name as PackageName,
                                 p.Name, p.Description, p.DiscountPercentage, p.DiscountAmount,
                                 p.StartDate, p.EndDate, p.IsSeasonalService, p.IsActive, p.CreatedAt
@@ -1425,21 +1384,20 @@ public class ServiceRepository : IServiceRepository
                         promotions.Add(new ServicePromotionDtoOut
                         {
                             Id = reader.GetInt32(0),
-                            OrganizationId = reader.GetInt32(1),
-                            ServiceId = reader.IsDBNull(2) ? null : reader.GetInt32(2),
-                            ServiceName = reader.IsDBNull(3) ? null : reader.GetString(3),
-                            ServicePackageId = reader.IsDBNull(4) ? null : reader.GetInt32(4),
-                            PackageName = reader.IsDBNull(5) ? null : reader.GetString(5),
-                            Name = reader.GetString(6),
-                            Description = reader.IsDBNull(7) ? null : reader.GetString(7),
-                            DiscountPercentage = reader.GetDecimal(8),
-                            DiscountAmount = reader.IsDBNull(9) ? null : reader.GetDecimal(9),
-                            StartDate = reader.GetDateTime(10).ToString("yyyy-MM-dd"),
-                            EndDate = reader.GetDateTime(11).ToString("yyyy-MM-dd"),
-                            IsSeasonalService = reader.GetBoolean(12),
-                            IsActive = reader.GetBoolean(13),
+                            ServiceId = reader.IsDBNull(1) ? null : reader.GetInt32(1),
+                            ServiceName = reader.IsDBNull(2) ? null : reader.GetString(2),
+                            ServicePackageId = reader.IsDBNull(3) ? null : reader.GetInt32(3),
+                            PackageName = reader.IsDBNull(4) ? null : reader.GetString(4),
+                            Name = reader.GetString(5),
+                            Description = reader.IsDBNull(6) ? null : reader.GetString(6),
+                            DiscountPercentage = reader.GetDecimal(7),
+                            DiscountAmount = reader.IsDBNull(8) ? null : reader.GetDecimal(8),
+                            StartDate = reader.GetDateTime(9).ToString("yyyy-MM-dd"),
+                            EndDate = reader.GetDateTime(10).ToString("yyyy-MM-dd"),
+                            IsSeasonalService = reader.GetBoolean(11),
+                            IsActive = reader.GetBoolean(12),
                             IsCurrentlyActive = true,
-                            CreatedAt = reader.GetDateTime(14).ToString("yyyy-MM-ddTHH:mm:ssZ")
+                            CreatedAt = reader.GetDateTime(13).ToString("yyyy-MM-ddTHH:mm:ssZ")
                         });
                     }
                 }
@@ -1456,7 +1414,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"SELECT p.Id, p.OrganizationId, p.ServiceId, s.Name as ServiceName, 
+            var query = @"SELECT p.Id, p.ServiceId, s.Name as ServiceName, 
                                 p.ServicePackageId, sp.Name as PackageName,
                                 p.Name, p.Description, p.DiscountPercentage, p.DiscountAmount,
                                 p.StartDate, p.EndDate, p.IsSeasonalService, p.IsActive, p.CreatedAt
@@ -1478,21 +1436,20 @@ public class ServiceRepository : IServiceRepository
                         promotions.Add(new ServicePromotionDtoOut
                         {
                             Id = reader.GetInt32(0),
-                            OrganizationId = reader.GetInt32(1),
-                            ServiceId = reader.IsDBNull(2) ? null : reader.GetInt32(2),
-                            ServiceName = reader.IsDBNull(3) ? null : reader.GetString(3),
-                            ServicePackageId = reader.IsDBNull(4) ? null : reader.GetInt32(4),
-                            PackageName = reader.IsDBNull(5) ? null : reader.GetString(5),
-                            Name = reader.GetString(6),
-                            Description = reader.IsDBNull(7) ? null : reader.GetString(7),
-                            DiscountPercentage = reader.GetDecimal(8),
-                            DiscountAmount = reader.IsDBNull(9) ? null : reader.GetDecimal(9),
-                            StartDate = reader.GetDateTime(10).ToString("yyyy-MM-dd"),
-                            EndDate = reader.GetDateTime(11).ToString("yyyy-MM-dd"),
-                            IsSeasonalService = reader.GetBoolean(12),
-                            IsActive = reader.GetBoolean(13),
+                            ServiceId = reader.IsDBNull(1) ? null : reader.GetInt32(1),
+                            ServiceName = reader.IsDBNull(2) ? null : reader.GetString(2),
+                            ServicePackageId = reader.IsDBNull(3) ? null : reader.GetInt32(3),
+                            PackageName = reader.IsDBNull(4) ? null : reader.GetString(4),
+                            Name = reader.GetString(5),
+                            Description = reader.IsDBNull(6) ? null : reader.GetString(6),
+                            DiscountPercentage = reader.GetDecimal(7),
+                            DiscountAmount = reader.IsDBNull(8) ? null : reader.GetDecimal(8),
+                            StartDate = reader.GetDateTime(9).ToString("yyyy-MM-dd"),
+                            EndDate = reader.GetDateTime(10).ToString("yyyy-MM-dd"),
+                            IsSeasonalService = reader.GetBoolean(11),
+                            IsActive = reader.GetBoolean(12),
                             IsCurrentlyActive = true,
-                            CreatedAt = reader.GetDateTime(14).ToString("yyyy-MM-ddTHH:mm:ssZ")
+                            CreatedAt = reader.GetDateTime(13).ToString("yyyy-MM-ddTHH:mm:ssZ")
                         });
                     }
                 }

@@ -16,9 +16,9 @@ public class CustomerService : ICustomerService
 
     #region Customer CRUD
 
-    public async Task<IEnumerable<CustomerListDtoOut>> GetAllAsync(int? organizationId = null)
+    public async Task<IEnumerable<CustomerListDtoOut>> GetAllAsync()
     {
-        return await _repository.GetAllAsync(organizationId);
+        return await _repository.GetAllAsync();
     }
 
     public async Task<CustomerDtoOut?> GetByIdAsync(int id)
@@ -45,7 +45,6 @@ public class CustomerService : ICustomerService
             Phone = customerDto.Phone,
             ProfileImageUrl = customerDto.ProfileImageUrl,
             BirthDate = customerDto.BirthDate,
-            OrganizationId = customerDto.OrganizationId,
             PreferredContactMethod = customerDto.PreferredContactMethod,
             MarketingConsent = customerDto.MarketingConsent,
             Category = CustomerCategory.New,
@@ -405,7 +404,6 @@ public class CustomerService : ICustomerService
             Phone = customer.Phone,
             ProfileImageUrl = customer.ProfileImageUrl,
             BirthDate = customer.BirthDate?.ToString("yyyy-MM-dd"),
-            OrganizationId = customer.OrganizationId,
             Category = customer.Category,
             LoyaltyPoints = customer.LoyaltyPoints,
             IsBlocked = customer.IsBlocked,

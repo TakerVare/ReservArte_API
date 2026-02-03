@@ -6,7 +6,6 @@ namespace ReservArte_API.Models;
 public class CancellationPolicy
 {
     public int Id { get; set; }
-    public int OrganizationId { get; set; }
     
     /// <summary>
     /// Horas mínimas de anticipación para cancelar sin penalización

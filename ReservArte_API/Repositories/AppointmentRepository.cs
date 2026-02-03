@@ -22,7 +22,7 @@ public class AppointmentRepository : IAppointmentRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT Id, OrganizationId, CustomerId, EmployeeId, AppointmentDate, 
+        var query = @"SELECT Id, CustomerId, EmployeeId, AppointmentDate, 
                      StartTime, EndTime, Status, TotalPrice, DepositAmount,
                      RedsysOrderNumber, RedsysPreAuthToken, PaymentMethodId,
                      CancellationReason, CancelledAt, CancelledById, CancelledByType,
@@ -46,7 +46,7 @@ public class AppointmentRepository : IAppointmentRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT a.Id, a.OrganizationId, a.CustomerId, a.EmployeeId, a.AppointmentDate, 
+        var query = @"SELECT a.Id, a.CustomerId, a.EmployeeId, a.AppointmentDate, 
                      a.StartTime, a.EndTime, a.Status, a.TotalPrice, a.DepositAmount,
                      a.RedsysOrderNumber, a.RedsysPreAuthToken, a.PaymentMethodId,
                      a.CancellationReason, a.CancelledAt, a.CancelledById, a.CancelledByType,
@@ -69,7 +69,6 @@ public class AppointmentRepository : IAppointmentRepository
             var dto = new AppointmentDtoOut
             {
                 Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                OrganizationId = reader.GetInt32(reader.GetOrdinal("OrganizationId")),
                 CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),
                 EmployeeId = reader.GetInt32(reader.GetOrdinal("EmployeeId")),
                 AppointmentDate = reader.GetDateTime(reader.GetOrdinal("AppointmentDate")).ToString("yyyy-MM-dd"),
@@ -134,16 +133,15 @@ public class AppointmentRepository : IAppointmentRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"INSERT INTO Appointments (OrganizationId, CustomerId, EmployeeId, AppointmentDate, 
+        var query = @"INSERT INTO Appointments (CustomerId, EmployeeId, AppointmentDate, 
                      StartTime, EndTime, Status, TotalPrice, DepositAmount,
                      RedsysOrderNumber, RedsysPreAuthToken, PaymentMethodId, Notes, CreatedAt)
-                     VALUES (@OrganizationId, @CustomerId, @EmployeeId, @AppointmentDate, 
+                     VALUES (@CustomerId, @EmployeeId, @AppointmentDate, 
                      @StartTime, @EndTime, @Status, @TotalPrice, @DepositAmount,
                      @RedsysOrderNumber, @RedsysPreAuthToken, @PaymentMethodId, @Notes, @CreatedAt);
                      SELECT CAST(SCOPE_IDENTITY() as int)";
         
         using var command = new SqlCommand(query, connection);
-        command.Parameters.AddWithValue("@OrganizationId", appointment.OrganizationId);
         command.Parameters.AddWithValue("@CustomerId", appointment.CustomerId);
         command.Parameters.AddWithValue("@EmployeeId", appointment.EmployeeId);
         command.Parameters.AddWithValue("@AppointmentDate", appointment.AppointmentDate.ToDateTime(TimeOnly.MinValue));
@@ -170,7 +168,6 @@ public class AppointmentRepository : IAppointmentRepository
         await connection.OpenAsync();
         
         var query = @"UPDATE Appointments SET
-                     OrganizationId = @OrganizationId,
                      CustomerId = @CustomerId,
                      EmployeeId = @EmployeeId,
                      AppointmentDate = @AppointmentDate,
@@ -188,7 +185,6 @@ public class AppointmentRepository : IAppointmentRepository
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);
-        command.Parameters.AddWithValue("@OrganizationId", appointment.OrganizationId);
         command.Parameters.AddWithValue("@CustomerId", appointment.CustomerId);
         command.Parameters.AddWithValue("@EmployeeId", appointment.EmployeeId);
         command.Parameters.AddWithValue("@AppointmentDate", appointment.AppointmentDate.ToDateTime(TimeOnly.MinValue));
@@ -305,7 +301,7 @@ public class AppointmentRepository : IAppointmentRepository
         return appointments;
     }
 
-    public async Task<IEnumerable<AgendaAppointmentDto>> GetByOrganizationAsync(int orgId, DateOnly startDate, DateOnly endDate)
+    public async Task<IEnumerable<AgendaAppointmentDto>> GetByDateRangeAsync(DateOnly startDate, DateOnly endDate)
     {
         var appointments = new List<AgendaAppointmentDto>();
         
@@ -319,13 +315,11 @@ public class AppointmentRepository : IAppointmentRepository
                      FROM Appointments a
                      INNER JOIN Customers c ON a.CustomerId = c.Id
                      INNER JOIN Employees e ON a.EmployeeId = e.Id
-                     WHERE a.OrganizationId = @OrgId
-                     AND a.AppointmentDate >= @StartDate
+                     WHERE a.AppointmentDate >= @StartDate
                      AND a.AppointmentDate <= @EndDate
                      ORDER BY a.AppointmentDate, a.StartTime";
         
         using var command = new SqlCommand(query, connection);
-        command.Parameters.AddWithValue("@OrgId", orgId);
         command.Parameters.AddWithValue("@StartDate", startDate.ToDateTime(TimeOnly.MinValue));
         command.Parameters.AddWithValue("@EndDate", endDate.ToDateTime(TimeOnly.MaxValue));
         
@@ -464,19 +458,17 @@ public class AppointmentRepository : IAppointmentRepository
         return count > 0;
     }
 
-    public async Task<int> GetCustomerNoShowCountAsync(int customerId, int organizationId)
+    public async Task<int> GetCustomerNoShowCountAsync(int customerId)
     {
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
         var query = @"SELECT COUNT(1) FROM Appointments 
                      WHERE CustomerId = @CustomerId 
-                     AND OrganizationId = @OrganizationId
                      AND Status = 'no_show'";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@CustomerId", customerId);
-        command.Parameters.AddWithValue("@OrganizationId", organizationId);
         
         return (int)(await command.ExecuteScalarAsync() ?? 0);
     }
@@ -731,7 +723,6 @@ public class AppointmentRepository : IAppointmentRepository
         var appointment = new Appointment
         {
             Id = reader.GetInt32(reader.GetOrdinal("Id")),
-            OrganizationId = reader.GetInt32(reader.GetOrdinal("OrganizationId")),
             CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),
             EmployeeId = reader.GetInt32(reader.GetOrdinal("EmployeeId")),
             AppointmentDate = DateOnly.FromDateTime(reader.GetDateTime(reader.GetOrdinal("AppointmentDate"))),

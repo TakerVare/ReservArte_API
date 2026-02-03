@@ -31,9 +31,6 @@ namespace ReservArte_API.Models.DTOs;
 public class WaitingListDtoIn
 {
     [Required]
-    public int OrganizationId { get; set; }
-    
-    [Required]
     public int CustomerId { get; set; }
     
     [Required]
@@ -68,7 +65,6 @@ public class WaitingListDtoIn
 public class WaitingListDtoOut
 {
     public int Id { get; set; }
-    public int OrganizationId { get; set; }
     public int CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public string? CustomerCategory { get; set; }

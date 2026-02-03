@@ -15,13 +15,13 @@ namespace ReservArte_API.Repositories.Interfaces
         // Consultas de agenda
         Task<IEnumerable<AppointmentDtoToList>> GetAllAsync();
         Task<IEnumerable<AppointmentDtoToList>> GetByUserIdAsync(int userId);
-        Task<IEnumerable<AgendaAppointmentDto>> GetByOrganizationAsync(int orgId, DateOnly startDate, DateOnly endDate);
+        Task<IEnumerable<AgendaAppointmentDto>> GetByDateRangeAsync(DateOnly startDate, DateOnly endDate);
         Task<IEnumerable<AgendaAppointmentDto>> GetByEmployeeAsync(int employeeId, DateOnly startDate, DateOnly endDate);
         Task<IEnumerable<AgendaAppointmentDto>> GetByCustomerAsync(int customerId);
         
         // Validaciones y comprobaciones
         Task<bool> CheckOverlapAsync(int employeeId, DateOnly date, TimeOnly startTime, TimeOnly endTime, int? excludeAppointmentId = null);
-        Task<int> GetCustomerNoShowCountAsync(int customerId, int organizationId);
+        Task<int> GetCustomerNoShowCountAsync(int customerId);
         
         // Gestión de estados
         Task<bool> UpdateStatusAsync(int id, string status, string? notes = null);

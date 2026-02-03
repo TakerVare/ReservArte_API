@@ -6,7 +6,7 @@ public interface IServiceService
 {
     #region Service CRUD
 
-    Task<IEnumerable<ServiceListDtoOut>> GetAllServicesAsync(int? organizationId = null, int? categoryId = null, bool? isActive = null);
+    Task<IEnumerable<ServiceListDtoOut>> GetAllServicesAsync(int? categoryId = null, bool? isActive = null);
     Task<ServiceDtoOut?> GetServiceByIdAsync(int id);
     Task<ServiceDtoOut?> CreateServiceAsync(ServiceDtoIn serviceDto);
     Task<ServiceDtoOut?> UpdateServiceAsync(int id, ServiceDtoIn serviceDto);
@@ -16,7 +16,7 @@ public interface IServiceService
 
     #region ServiceCategory CRUD
 
-    Task<IEnumerable<ServiceCategoryDtoOut>> GetAllCategoriesAsync(int? organizationId = null);
+    Task<IEnumerable<ServiceCategoryDtoOut>> GetAllCategoriesAsync();
     Task<ServiceCategoryDtoOut?> GetCategoryByIdAsync(int id);
     Task<ServiceCategoryDtoOut?> CreateCategoryAsync(ServiceCategoryDtoIn categoryDto);
     Task<ServiceCategoryDtoOut?> UpdateCategoryAsync(int id, ServiceCategoryDtoIn categoryDto);
@@ -43,7 +43,7 @@ public interface IServiceService
 
     #region Product CRUD
 
-    Task<IEnumerable<ProductDtoOut>> GetAllProductsAsync(int? organizationId = null);
+    Task<IEnumerable<ProductDtoOut>> GetAllProductsAsync();
     Task<ProductDtoOut?> GetProductByIdAsync(int id);
     Task<ProductDtoOut?> CreateProductAsync(ProductDtoIn productDto);
     Task<ProductDtoOut?> UpdateProductAsync(int id, ProductDtoIn productDto);
@@ -61,7 +61,7 @@ public interface IServiceService
 
     #region ServicePackage CRUD
 
-    Task<IEnumerable<ServicePackageListDtoOut>> GetAllPackagesAsync(int? organizationId = null, bool? isActive = null);
+    Task<IEnumerable<ServicePackageListDtoOut>> GetAllPackagesAsync(bool? isActive = null);
     Task<ServicePackageDtoOut?> GetPackageByIdAsync(int id);
     Task<ServicePackageDtoOut?> CreatePackageAsync(ServicePackageDtoIn packageDto);
     Task<ServicePackageDtoOut?> UpdatePackageAsync(int id, ServicePackageDtoIn packageDto);
@@ -79,7 +79,7 @@ public interface IServiceService
 
     #region ServicePromotion CRUD
 
-    Task<IEnumerable<ServicePromotionDtoOut>> GetAllPromotionsAsync(int? organizationId = null, bool? activeOnly = null);
+    Task<IEnumerable<ServicePromotionDtoOut>> GetAllPromotionsAsync(bool? activeOnly = null);
     Task<ServicePromotionDtoOut?> GetPromotionByIdAsync(int id);
     Task<ServicePromotionDtoOut?> CreatePromotionAsync(ServicePromotionDtoIn promotionDto);
     Task<ServicePromotionDtoOut?> UpdatePromotionAsync(int id, ServicePromotionDtoIn promotionDto);

@@ -19,18 +19,17 @@ public class CancellationPolicyController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene la política de cancelación de una organización
+    /// Obtiene la política de cancelación
     /// </summary>
-    [HttpGet("{organizationId}")]
-    public async Task<ActionResult<CancellationPolicyDto>> GetByOrganization(int organizationId)
+    [HttpGet]
+    public async Task<ActionResult<CancellationPolicyDto>> Get()
     {
-        var policy = await _policyRepository.GetByOrganizationAsync(organizationId);
+        var policy = await _policyRepository.GetAsync();
         if (policy == null)
         {
             // Retornar política por defecto si no existe
             return Ok(new CancellationPolicyDto
             {
-                OrganizationId = organizationId,
                 MinHoursBeforeCancel = 24,
                 PenaltyPercentage = 50,
                 MaxNoShowsBeforeBlock = 3,
@@ -41,7 +40,6 @@ public class CancellationPolicyController : ControllerBase
         return Ok(new CancellationPolicyDto
         {
             Id = policy.Id,
-            OrganizationId = policy.OrganizationId,
             MinHoursBeforeCancel = policy.MinHoursBeforeCancel,
             PenaltyPercentage = policy.PenaltyPercentage,
             MaxNoShowsBeforeBlock = policy.MaxNoShowsBeforeBlock,
@@ -52,27 +50,19 @@ public class CancellationPolicyController : ControllerBase
     }
 
     /// <summary>
-    /// Crea o actualiza la política de cancelación de una organización
+    /// Crea o actualiza la política de cancelación
     /// </summary>
-    [HttpPut("{organizationId}")]
+    [HttpPut]
     [Authorize(Roles = Roles.Admin)]
-    public async Task<ActionResult<CancellationPolicyDto>> CreateOrUpdate(
-        int organizationId, 
-        [FromBody] CancellationPolicyDto dto)
+    public async Task<ActionResult<CancellationPolicyDto>> CreateOrUpdate([FromBody] CancellationPolicyDto dto)
     {
         try
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (dto.OrganizationId != organizationId)
-            {
-                return BadRequest(new { message = "El ID de organización no coincide" });
-            }
-
             var policy = new CancellationPolicy
             {
-                OrganizationId = dto.OrganizationId,
                 MinHoursBeforeCancel = dto.MinHoursBeforeCancel,
                 PenaltyPercentage = dto.PenaltyPercentage,
                 MaxNoShowsBeforeBlock = dto.MaxNoShowsBeforeBlock,
@@ -90,7 +80,6 @@ public class CancellationPolicyController : ControllerBase
             return Ok(new CancellationPolicyDto
             {
                 Id = result.Id,
-                OrganizationId = result.OrganizationId,
                 MinHoursBeforeCancel = result.MinHoursBeforeCancel,
                 PenaltyPercentage = result.PenaltyPercentage,
                 MaxNoShowsBeforeBlock = result.MaxNoShowsBeforeBlock,

@@ -103,7 +103,6 @@ public class AppointmentService : IAppointmentService
         // 8. Crear la cita
         var appointment = new Appointment
         {
-            OrganizationId = dto.OrganizationId,
             CustomerId = dto.CustomerId,
             EmployeeId = dto.EmployeeId,
             AppointmentDate = dto.AppointmentDate,
@@ -149,8 +148,8 @@ public class AppointmentService : IAppointmentService
         }
         else
         {
-            appointments = await _appointmentRepository.GetByOrganizationAsync(
-                query.OrganizationId, query.StartDate, query.EndDate);
+            appointments = await _appointmentRepository.GetByDateRangeAsync(
+                query.StartDate, query.EndDate);
         }
 
         // Filtrar por estado si se especifica
@@ -208,7 +207,6 @@ public class AppointmentService : IAppointmentService
         {
             StartDate = query.StartDate,
             EndDate = query.EndDate,
-            OrganizationId = query.OrganizationId,
             ViewType = query.ViewType,
             Days = days,
             Stats = stats
@@ -244,7 +242,7 @@ public class AppointmentService : IAppointmentService
         };
 
         // Obtener empleados que pueden realizar el servicio
-        var employees = await GetEmployeesForServiceAsync(request.OrganizationId, request.ServiceId, request.EmployeeId);
+        var employees = await GetEmployeesForServiceAsync(request.ServiceId, request.EmployeeId);
 
         foreach (var employee in employees)
         {
@@ -390,10 +388,9 @@ public class AppointmentService : IAppointmentService
         await _appointmentRepository.UpdateStatusAsync(id, Status.NoShow);
 
         // Verificar si el cliente debe ser bloqueado
-        var noShowCount = await _appointmentRepository.GetCustomerNoShowCountAsync(
-            appointment.CustomerId, appointment.OrganizationId);
+        var noShowCount = await _appointmentRepository.GetCustomerNoShowCountAsync(appointment.CustomerId);
 
-        var policy = await _cancellationPolicyRepository.GetByOrganizationAsync(appointment.OrganizationId);
+        var policy = await _cancellationPolicyRepository.GetActiveAsync();
         var shouldBlock = policy != null && noShowCount >= policy.MaxNoShowsBeforeBlock;
 
         if (shouldBlock)
@@ -536,7 +533,7 @@ public class AppointmentService : IAppointmentService
             appointmentEnd > e.StartDateTime);
     }
 
-    private async Task<IEnumerable<Employee>> GetEmployeesForServiceAsync(int organizationId, int serviceId, int? specificEmployeeId)
+    private async Task<IEnumerable<Employee>> GetEmployeesForServiceAsync(int serviceId, int? specificEmployeeId)
     {
         // Si se especifica un empleado, solo verificar ese
         if (specificEmployeeId.HasValue)
@@ -630,7 +627,7 @@ public class AppointmentService : IAppointmentService
         if (isJustified)
             return (false, 0, 0);
 
-        var policy = await _cancellationPolicyRepository.GetByOrganizationAsync(appointment.OrganizationId);
+        var policy = await _cancellationPolicyRepository.GetActiveAsync();
         if (policy == null || !policy.IsActive)
             return (false, 0, 0);
 

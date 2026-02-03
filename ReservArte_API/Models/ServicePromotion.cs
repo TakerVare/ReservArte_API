@@ -3,7 +3,6 @@ namespace ReservArte_API.Models;
 public class ServicePromotion
 {
     public int Id { get; set; }
-    public int OrganizationId { get; set; }
     public int? ServiceId { get; set; }
     public int? ServicePackageId { get; set; }
     public string Name { get; set; } = string.Empty;

@@ -7,7 +7,7 @@ public interface IWaitingListService
 {
     Task<WaitingListDtoOut?> GetByIdAsync(int id);
     Task<IEnumerable<WaitingListDtoOut>> GetByCustomerAsync(int customerId);
-    Task<IEnumerable<WaitingListDtoOut>> GetByOrganizationAsync(int organizationId);
+    Task<IEnumerable<WaitingListDtoOut>> GetAllAsync();
     
     Task<WaitingListDtoOut?> AddToWaitingListAsync(WaitingListDtoIn dto);
     Task<bool> RemoveFromWaitingListAsync(int id);
@@ -16,5 +16,5 @@ public interface IWaitingListService
     /// Notifica a los clientes en lista de espera cuando se libera un slot
     /// </summary>
     Task<IEnumerable<WaitingListDtoOut>> NotifyMatchingCustomersAsync(
-        int organizationId, int serviceId, DateTime date, int? employeeId = null);
+        int serviceId, DateTime date, int? employeeId = null);
 }
