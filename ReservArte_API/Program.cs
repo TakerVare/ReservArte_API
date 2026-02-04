@@ -85,6 +85,14 @@ builder.Services.AddScoped<IServicePhotoService, ServicePhotoService>();
 // Background job para limpieza RGPD de fotos expiradas
 builder.Services.AddHostedService<PhotoCleanupBackgroundService>();
 
+// === Product Management System ===
+// Repositories
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
+builder.Services.AddScoped<IProductSaleRepository, ProductSaleRepository>();
+
+// Services
+builder.Services.AddScoped<IProductService, ProductService>();
 
 // Add Authorization Policies
 builder.Services.AddAuthorizationBuilder()
