@@ -463,7 +463,7 @@ public class CustomerService : ICustomerService
             CardExpiry = method.FormattedExpiry,
             IsDefault = method.IsDefault,
             IsExpired = method.IsExpired,
-            CreatedAt = method.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            CreatedAt = method.CreatedAt
         };
     }
 

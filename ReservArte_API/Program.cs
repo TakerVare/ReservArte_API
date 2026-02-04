@@ -57,6 +57,21 @@ builder.Services.AddScoped<ICancellationPolicyRepository, CancellationPolicyRepo
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<ICustomerPaymentMethodRepository, CustomerPaymentMethodRepository>();
 
+// === Reminder System ===
+// Repositories
+builder.Services.AddScoped<IReminderConfigurationRepository, ReminderConfigurationRepository>();
+builder.Services.AddScoped<IMessageTemplateRepository, MessageTemplateRepository>();
+builder.Services.AddScoped<IReminderLogRepository, ReminderLogRepository>();
+builder.Services.AddScoped<IConfirmationTokenRepository, ConfirmationTokenRepository>();
+
+// Services
+builder.Services.AddScoped<IReminderService, ReminderService>();
+builder.Services.AddScoped<IEmailSenderService, MockEmailSenderService>();
+builder.Services.AddScoped<IWhatsAppSenderService, MockWhatsAppSenderService>();
+
+// Background job para procesar recordatorios
+builder.Services.AddHostedService<ReminderBackgroundService>();
+
 
 // Add Authorization Policies
 builder.Services.AddAuthorizationBuilder()

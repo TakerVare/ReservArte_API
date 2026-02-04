@@ -24,7 +24,7 @@ public class CancellationPolicyController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<CancellationPolicyDto>> Get()
     {
-        var policy = await _policyRepository.GetAsync();
+        var policy = await _policyRepository.GetActiveAsync();
         if (policy == null)
         {
             // Retornar política por defecto si no existe

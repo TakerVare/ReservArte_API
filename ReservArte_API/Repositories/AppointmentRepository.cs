@@ -419,6 +419,44 @@ public class AppointmentRepository : IAppointmentRepository
         return appointments;
     }
 
+    /// <summary>
+    /// Obtiene citas cuya fecha/hora de inicio esté dentro de la ventana [from, to].
+    /// Solo devuelve citas con estado activo (pending, confirmed) para envío de recordatorios.
+    /// </summary>
+    public async Task<IEnumerable<Appointment>> GetAppointmentsInDateTimeWindowAsync(DateTime from, DateTime to)
+    {
+        var appointments = new List<Appointment>();
+        
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+        
+        // Combina AppointmentDate + StartTime y filtra los que estén en la ventana [from, to]
+        // Solo incluye citas en estado "pending" o "confirmed" (activas)
+        var query = @"SELECT Id, CustomerId, EmployeeId, AppointmentDate, 
+                     StartTime, EndTime, Status, TotalPrice, DepositAmount,
+                     RedsysOrderNumber, RedsysPreAuthToken, PaymentMethodId,
+                     CancellationReason, CancelledAt, CancelledById, CancelledByType,
+                     Notes, CreatedAt, UpdatedAt
+                     FROM Appointments 
+                     WHERE Status IN (@StatusPending, @StatusConfirmed)
+                     AND CAST(AppointmentDate AS DATETIME) + CAST(StartTime AS DATETIME) >= @From
+                     AND CAST(AppointmentDate AS DATETIME) + CAST(StartTime AS DATETIME) <= @To";
+        
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.AddWithValue("@StatusPending", Status.Pending);
+        command.Parameters.AddWithValue("@StatusConfirmed", Status.Confirmed);
+        command.Parameters.AddWithValue("@From", from);
+        command.Parameters.AddWithValue("@To", to);
+        
+        using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            appointments.Add(MapAppointmentFromReader(reader));
+        }
+        
+        return appointments;
+    }
+
     #endregion
 
     #region Validaciones y Comprobaciones
