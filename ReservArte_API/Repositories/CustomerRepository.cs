@@ -538,7 +538,27 @@ public class CustomerRepository : ICustomerRepository
                 }
             }
 
+
             return consent;
+        }
+    }
+
+    public async Task<bool> HasConsentAsync(int customerId, string consentType)
+    {
+        using (var connection = new SqlConnection(_connectionString))
+        {
+            await connection.OpenAsync();
+            var query = @"SELECT IsGranted FROM CustomerConsents 
+                         WHERE CustomerId = @CustomerId AND ConsentType = @ConsentType";
+
+            using (var command = new SqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@CustomerId", customerId);
+                command.Parameters.AddWithValue("@ConsentType", consentType);
+
+                var result = await command.ExecuteScalarAsync();
+                return result != null && (bool)result;
+            }
         }
     }
 

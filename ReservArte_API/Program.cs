@@ -72,6 +72,19 @@ builder.Services.AddScoped<IWhatsAppSenderService, MockWhatsAppSenderService>();
 // Background job para procesar recordatorios
 builder.Services.AddHostedService<ReminderBackgroundService>();
 
+// === Service Photo System ===
+// Configuration
+builder.Services.Configure<S3Settings>(builder.Configuration.GetSection(S3Settings.SectionName));
+
+// Repositories
+builder.Services.AddScoped<IServicePhotoRepository, ServicePhotoRepository>();
+
+// Services
+builder.Services.AddScoped<IServicePhotoService, ServicePhotoService>();
+
+// Background job para limpieza RGPD de fotos expiradas
+builder.Services.AddHostedService<PhotoCleanupBackgroundService>();
+
 
 // Add Authorization Policies
 builder.Services.AddAuthorizationBuilder()

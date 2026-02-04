@@ -37,6 +37,7 @@ public interface ICustomerRepository
     
     Task<IEnumerable<CustomerConsent>> GetConsentsByCustomerIdAsync(int customerId);
     Task<CustomerConsent?> UpsertConsentAsync(CustomerConsent consent);
+    Task<bool> HasConsentAsync(int customerId, string consentType);
     
     #endregion
 
