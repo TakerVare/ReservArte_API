@@ -10,6 +10,7 @@ public class PaymentService : IPaymentService
     private readonly IPaymentRepository _paymentRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly IAppointmentRepository _appointmentRepository;
+    private readonly ICustomerPaymentMethodRepository _paymentMethodRepository;
     private readonly IRedsysService _redsysService;
     private readonly ILogger<PaymentService> _logger;
 
@@ -17,12 +18,14 @@ public class PaymentService : IPaymentService
         IPaymentRepository paymentRepository,
         ICustomerRepository customerRepository,
         IAppointmentRepository appointmentRepository,
+        ICustomerPaymentMethodRepository paymentMethodRepository,
         IRedsysService redsysService,
         ILogger<PaymentService> logger)
     {
         _paymentRepository = paymentRepository;
         _customerRepository = customerRepository;
         _appointmentRepository = appointmentRepository;
+        _paymentMethodRepository = paymentMethodRepository;
         _redsysService = redsysService;
         _logger = logger;
     }
@@ -298,13 +301,30 @@ public class PaymentService : IPaymentService
 
         if (dto.SavedPaymentMethodId.HasValue)
         {
-            // Usar tarjeta guardada (pendiente: obtener token del CustomerPaymentMethod)
-            // Por ahora lanzamos excepción - se implementará en Fase 3
-            throw new InvalidOperationException("Pago con tarjeta guardada se implementará en Fase 3");
+            // Usar tarjeta guardada
+            var savedMethod = await _paymentMethodRepository.GetByIdAsync(dto.SavedPaymentMethodId.Value);
+            if (savedMethod == null)
+                throw new InvalidOperationException("Método de pago guardado no encontrado");
+            
+            if (savedMethod.CustomerId != dto.CustomerId)
+                throw new InvalidOperationException("El método de pago no pertenece al cliente");
+            
+            if (savedMethod.IsExpired)
+                throw new InvalidOperationException("La tarjeta guardada ha caducado");
+            
+            result = await _redsysService.CreatePreAuthorizationWithTokenAsync(
+                orderNumber,
+                dto.Amount,
+                savedMethod.RedsysToken,
+                savedMethod.RedsysCofTxnid,
+                $"appointment:{dto.AppointmentId}");
         }
         else
         {
             // Usar idOper del frontend (InSite)
+            if (string.IsNullOrEmpty(dto.IdOper))
+                throw new InvalidOperationException("Se requiere idOper o SavedPaymentMethodId");
+            
             result = await _redsysService.CreatePreAuthorizationAsync(
                 orderNumber,
                 dto.Amount,
@@ -348,6 +368,40 @@ public class PaymentService : IPaymentService
             orderNumber,
             dto.Amount);
 
+        // Si se solicitó guardar la tarjeta y la operación fue exitosa
+        string? savedCardToken = null;
+        if (result.Success && dto.SaveCard && !string.IsNullOrEmpty(result.CardToken))
+        {
+            try
+            {
+                var saveCardDto = new SaveCardRequestDto
+                {
+                    CustomerId = dto.CustomerId,
+                    RedsysToken = result.CardToken,
+                    CofTxnId = result.CofTxnId,
+                    CardLast4 = result.CardNumber?.Length >= 4 
+                        ? result.CardNumber.Substring(result.CardNumber.Length - 4) 
+                        : "****",
+                    CardBrand = result.CardBrand ?? "Desconocida",
+                    CardExpiry = result.ExpiryDate ?? DateTime.UtcNow.AddYears(3).ToString("yyMM"),
+                    SetAsDefault = !await _paymentMethodRepository.CustomerHasPaymentMethodsAsync(dto.CustomerId)
+                };
+                
+                var savedCard = await SaveCardFromTransactionAsync(saveCardDto);
+                savedCardToken = savedCard != null ? result.CardToken : null;
+                
+                _logger.LogInformation(
+                    "Tarjeta guardada para cliente {CustomerId}. Last4: {Last4}",
+                    dto.CustomerId,
+                    saveCardDto.CardLast4);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error al guardar tarjeta para cliente {CustomerId}", dto.CustomerId);
+                // No fallar la operación si no se pudo guardar la tarjeta
+            }
+        }
+
         return new RedsysPreAuthResponseDto
         {
             PaymentId = createdPayment.Id,
@@ -362,7 +416,7 @@ public class PaymentService : IPaymentService
                 ? result.CardNumber.Substring(result.CardNumber.Length - 4) 
                 : null,
             CardBrand = result.CardBrand,
-            CardToken = dto.SaveCard ? result.CardToken : null,
+            CardToken = savedCardToken,
             ExpiresAt = result.Success ? DateTime.UtcNow.AddDays(7) : null
         };
     }
@@ -656,6 +710,77 @@ public class PaymentService : IPaymentService
             data.Ds_Response);
 
         return true;
+    }
+
+    #endregion
+
+    #region Tarjetas Guardadas
+
+    public async Task<IEnumerable<CustomerPaymentMethodDtoOut>> GetCustomerPaymentMethodsAsync(int customerId)
+    {
+        return await _paymentMethodRepository.GetByCustomerIdAsync(customerId);
+    }
+
+    public async Task<bool> DeletePaymentMethodAsync(int paymentMethodId, int customerId)
+    {
+        var method = await _paymentMethodRepository.GetByIdAsync(paymentMethodId);
+        if (method == null)
+            return false;
+        
+        if (method.CustomerId != customerId)
+            throw new InvalidOperationException("El método de pago no pertenece al cliente");
+        
+        return await _paymentMethodRepository.DeleteAsync(paymentMethodId);
+    }
+
+    public async Task<bool> SetDefaultPaymentMethodAsync(int paymentMethodId, int customerId)
+    {
+        var method = await _paymentMethodRepository.GetByIdAsync(paymentMethodId);
+        if (method == null)
+            throw new InvalidOperationException("Método de pago no encontrado");
+        
+        if (method.CustomerId != customerId)
+            throw new InvalidOperationException("El método de pago no pertenece al cliente");
+        
+        return await _paymentMethodRepository.SetAsDefaultAsync(paymentMethodId, customerId);
+    }
+
+    public async Task<CustomerPaymentMethodDtoOut?> SaveCardFromTransactionAsync(SaveCardRequestDto dto)
+    {
+        // Validar cliente
+        var customer = await _customerRepository.GetByIdAsync(dto.CustomerId);
+        if (customer == null)
+            throw new InvalidOperationException("Cliente no encontrado");
+        
+        // Crear método de pago
+        var paymentMethod = new CustomerPaymentMethod
+        {
+            CustomerId = dto.CustomerId,
+            RedsysToken = dto.RedsysToken,
+            RedsysCofTxnid = dto.CofTxnId,
+            CardLast4 = dto.CardLast4,
+            CardBrand = dto.CardBrand,
+            CardExpiry = dto.CardExpiry,
+            IsDefault = dto.SetAsDefault,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        
+        var created = await _paymentMethodRepository.CreateAsync(paymentMethod);
+        if (created == null)
+            return null;
+        
+        return new CustomerPaymentMethodDtoOut
+        {
+            Id = created.Id,
+            CustomerId = created.CustomerId,
+            CardLast4 = created.CardLast4,
+            CardBrand = created.CardBrand,
+            CardExpiry = created.FormattedExpiry,
+            IsDefault = created.IsDefault,
+            IsExpired = created.IsExpired,
+            CreatedAt = created.CreatedAt
+        };
     }
 
     #endregion

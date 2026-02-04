@@ -402,6 +402,94 @@ public class PaymentController : ControllerBase
 
     #endregion
 
+    #region Tarjetas Guardadas
+
+    /// <summary>
+    /// Obtiene las tarjetas guardadas de un cliente
+    /// </summary>
+    [HttpGet("methods/{customerId}")]
+    public async Task<ActionResult<IEnumerable<CustomerPaymentMethodDtoOut>>> GetPaymentMethods(int customerId)
+    {
+        // Verificar acceso
+        if (!User.IsInRole(Roles.Admin) && !User.IsInRole(Roles.Employee))
+        {
+            var userId = GetCurrentUserId();
+            if (customerId != userId)
+            {
+                return Forbid();
+            }
+        }
+        
+        var methods = await _paymentService.GetCustomerPaymentMethodsAsync(customerId);
+        return Ok(methods);
+    }
+
+    /// <summary>
+    /// Elimina una tarjeta guardada
+    /// </summary>
+    [HttpDelete("methods/{customerId}/{paymentMethodId}")]
+    public async Task<IActionResult> DeletePaymentMethod(int customerId, int paymentMethodId)
+    {
+        try
+        {
+            // Verificar acceso
+            if (!User.IsInRole(Roles.Admin))
+            {
+                var userId = GetCurrentUserId();
+                if (customerId != userId)
+                {
+                    return Forbid();
+                }
+            }
+            
+            var deleted = await _paymentService.DeletePaymentMethodAsync(paymentMethodId, customerId);
+            if (!deleted)
+            {
+                return NotFound(new { message = "Método de pago no encontrado" });
+            }
+            
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Establece una tarjeta como predeterminada
+    /// </summary>
+    [HttpPut("methods/{customerId}/{paymentMethodId}/default")]
+    public async Task<IActionResult> SetDefaultPaymentMethod(int customerId, int paymentMethodId)
+    {
+        try
+        {
+            // Verificar acceso
+            if (!User.IsInRole(Roles.Admin))
+            {
+                var userId = GetCurrentUserId();
+                if (customerId != userId)
+                {
+                    return Forbid();
+                }
+            }
+            
+            var success = await _paymentService.SetDefaultPaymentMethodAsync(paymentMethodId, customerId);
+            if (!success)
+            {
+                return NotFound(new { message = "Método de pago no encontrado" });
+            }
+            
+            return Ok(new { message = "Método de pago establecido como predeterminado" });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    #endregion
+
     #region Helpers
 
     private int GetCurrentUserId()

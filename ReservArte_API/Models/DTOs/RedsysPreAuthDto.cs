@@ -48,9 +48,9 @@ public class RedsysPreAuthRequestDto
     /// <summary>
     /// idOper obtenido del SDK InSite de Redsys en el frontend
     /// Este identificador contiene los datos de tarjeta capturados de forma segura
+    /// Requerido si no se proporciona SavedPaymentMethodId
     /// </summary>
-    [Required(ErrorMessage = "El idOper es obligatorio")]
-    public string IdOper { get; set; } = string.Empty;
+    public string? IdOper { get; set; }
     
     /// <summary>
     /// ID del método de pago guardado (opcional, alternativa a idOper)

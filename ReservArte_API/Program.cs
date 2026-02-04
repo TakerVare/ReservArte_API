@@ -55,6 +55,7 @@ builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
 builder.Services.AddScoped<IWaitingListRepository, WaitingListRepository>();
 builder.Services.AddScoped<ICancellationPolicyRepository, CancellationPolicyRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<ICustomerPaymentMethodRepository, CustomerPaymentMethodRepository>();
 
 
 // Add Authorization Policies

@@ -103,6 +103,30 @@ public interface IPaymentService
     Task<bool> ProcessWebhookAsync(RedsysWebhookDto webhook);
     
     #endregion
+    
+    #region Tarjetas Guardadas
+    
+    /// <summary>
+    /// Obtiene las tarjetas guardadas de un cliente
+    /// </summary>
+    Task<IEnumerable<CustomerPaymentMethodDtoOut>> GetCustomerPaymentMethodsAsync(int customerId);
+    
+    /// <summary>
+    /// Elimina una tarjeta guardada
+    /// </summary>
+    Task<bool> DeletePaymentMethodAsync(int paymentMethodId, int customerId);
+    
+    /// <summary>
+    /// Establece una tarjeta como predeterminada
+    /// </summary>
+    Task<bool> SetDefaultPaymentMethodAsync(int paymentMethodId, int customerId);
+    
+    /// <summary>
+    /// Guarda una tarjeta desde los datos de una transacción exitosa
+    /// </summary>
+    Task<CustomerPaymentMethodDtoOut?> SaveCardFromTransactionAsync(SaveCardRequestDto dto);
+    
+    #endregion
 }
 
 /// <summary>
