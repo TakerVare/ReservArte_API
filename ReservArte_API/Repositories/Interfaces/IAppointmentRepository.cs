@@ -19,6 +19,9 @@ namespace ReservArte_API.Repositories.Interfaces
         Task<IEnumerable<AgendaAppointmentDto>> GetByEmployeeAsync(int employeeId, DateOnly startDate, DateOnly endDate);
         Task<IEnumerable<AgendaAppointmentDto>> GetByCustomerAsync(int customerId);
         
+        /// <summary>Obtiene citas cuya fecha/hora de inicio esté dentro de la ventana [from, to] para recordatorios.</summary>
+        Task<IEnumerable<Appointment>> GetAppointmentsInDateTimeWindowAsync(DateTime from, DateTime to);
+        
         // Validaciones y comprobaciones
         Task<bool> CheckOverlapAsync(int employeeId, DateOnly date, TimeOnly startTime, TimeOnly endTime, int? excludeAppointmentId = null);
         Task<int> GetCustomerNoShowCountAsync(int customerId);

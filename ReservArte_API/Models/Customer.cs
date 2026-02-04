@@ -12,5 +12,7 @@ public class Customer : User
     public string? BlockedReason { get; set; }
     public string PreferredContactMethod { get; set; } = ContactMethod.Email;
     public bool MarketingConsent { get; set; } = false;
+    /// <summary>Consentimiento para recibir recordatorios de citas (opt-in por defecto).</summary>
+    public bool ReminderConsent { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
