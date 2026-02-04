@@ -22,7 +22,7 @@ public interface IPaymentService
     
     #endregion
     
-    #region Pagos Manuales (Fase 1)
+    #region Pagos Manuales
     
     /// <summary>
     /// Registra un pago manual (efectivo, transferencia, TPV)
@@ -44,7 +44,7 @@ public interface IPaymentService
     Task<bool> UpdateStatusAsync(int id, string status);
     
     /// <summary>
-    /// Procesa un reembolso
+    /// Procesa un reembolso (manual)
     /// </summary>
     Task<PaymentDtoOut?> ProcessRefundAsync(int id, decimal amount, string? notes = null);
     
@@ -59,13 +59,48 @@ public interface IPaymentService
     
     #endregion
     
-    #region Redsys (Placeholder para Fase 2)
+    #region Redsys - Pre-autorización
     
-    // Los métodos de Redsys se añadirán en la Fase 2:
-    // Task<PaymentDtoOut?> CreatePreAuthorizationAsync(RedsysPreAuthDto dto);
-    // Task<PaymentDtoOut?> ConfirmPaymentAsync(int paymentId, decimal? amount = null);
-    // Task<PaymentDtoOut?> CancelPreAuthorizationAsync(int paymentId);
-    // Task<bool> ProcessWebhookAsync(RedsysWebhookDto webhook);
+    /// <summary>
+    /// Crea una pre-autorización para una cita (bloquea importe sin cobrar)
+    /// </summary>
+    Task<RedsysPreAuthResponseDto> CreatePreAuthorizationAsync(RedsysPreAuthRequestDto dto);
+    
+    #endregion
+    
+    #region Redsys - Confirmación/Captura
+    
+    /// <summary>
+    /// Confirma (captura) una pre-autorización
+    /// </summary>
+    Task<RedsysConfirmResponseDto> ConfirmPaymentAsync(int paymentId, RedsysConfirmRequestDto? dto = null);
+    
+    #endregion
+    
+    #region Redsys - Cancelación
+    
+    /// <summary>
+    /// Cancela una pre-autorización (libera el importe bloqueado)
+    /// </summary>
+    Task<RedsysCancelResponseDto> CancelPreAuthorizationAsync(int paymentId, RedsysCancelRequestDto? dto = null);
+    
+    #endregion
+    
+    #region Redsys - Reembolso
+    
+    /// <summary>
+    /// Procesa un reembolso vía Redsys
+    /// </summary>
+    Task<RedsysRefundResponseDto> ProcessRedsysRefundAsync(int paymentId, RedsysRefundRequestDto dto);
+    
+    #endregion
+    
+    #region Redsys - Webhook
+    
+    /// <summary>
+    /// Procesa notificación webhook de Redsys
+    /// </summary>
+    Task<bool> ProcessWebhookAsync(RedsysWebhookDto webhook);
     
     #endregion
 }

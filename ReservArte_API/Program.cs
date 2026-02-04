@@ -31,6 +31,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var connectionString = builder.Configuration.GetConnectionString("ReservArteDB");
 
+// Configuración de Redsys
+builder.Services.Configure<RedsysSettings>(builder.Configuration.GetSection(RedsysSettings.SectionName));
+
+// HttpClient para Redsys
+builder.Services.AddHttpClient<IRedsysService, RedsysService>();
+
 // Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();

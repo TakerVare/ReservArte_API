@@ -187,7 +187,7 @@ public class PaymentController : ControllerBase
     }
 
     /// <summary>
-    /// Procesa un reembolso
+    /// Procesa un reembolso manual (sin Redsys)
     /// </summary>
     [HttpPost("{id}/refund")]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
@@ -226,6 +226,177 @@ public class PaymentController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    #endregion
+
+    #region Redsys - Pre-autorización
+
+    /// <summary>
+    /// Crea una pre-autorización para una cita (bloquea importe sin cobrar)
+    /// El frontend debe haber obtenido un idOper usando el SDK InSite de Redsys
+    /// </summary>
+    [HttpPost("preauth")]
+    public async Task<ActionResult<RedsysPreAuthResponseDto>> CreatePreAuthorization(
+        [FromBody] RedsysPreAuthRequestDto dto)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            
+            var result = await _paymentService.CreatePreAuthorizationAsync(dto);
+            
+            if (!result.Success)
+            {
+                return BadRequest(new { 
+                    message = result.ResponseMessage ?? "Error en pre-autorización",
+                    responseCode = result.ResponseCode,
+                    paymentId = result.PaymentId
+                });
+            }
+            
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    #endregion
+
+    #region Redsys - Confirmación/Captura
+
+    /// <summary>
+    /// Confirma (captura) una pre-autorización
+    /// Se usa cuando el cliente asiste a la cita
+    /// </summary>
+    [HttpPost("{id}/confirm")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
+    public async Task<ActionResult<RedsysConfirmResponseDto>> ConfirmPayment(
+        int id, 
+        [FromBody] RedsysConfirmRequestDto? dto = null)
+    {
+        try
+        {
+            var result = await _paymentService.ConfirmPaymentAsync(id, dto);
+            
+            if (!result.Success)
+            {
+                return BadRequest(new { 
+                    message = result.ResponseMessage ?? "Error en confirmación",
+                    responseCode = result.ResponseCode
+                });
+            }
+            
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    #endregion
+
+    #region Redsys - Cancelación
+
+    /// <summary>
+    /// Cancela una pre-autorización (libera el importe bloqueado)
+    /// Se usa cuando el cliente cancela con antelación suficiente o paga en efectivo
+    /// </summary>
+    [HttpPost("{id}/cancel-preauth")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
+    public async Task<ActionResult<RedsysCancelResponseDto>> CancelPreAuthorization(
+        int id, 
+        [FromBody] RedsysCancelRequestDto? dto = null)
+    {
+        try
+        {
+            var result = await _paymentService.CancelPreAuthorizationAsync(id, dto);
+            
+            if (!result.Success)
+            {
+                return BadRequest(new { 
+                    message = result.ResponseMessage ?? "Error en cancelación",
+                    responseCode = result.ResponseCode
+                });
+            }
+            
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    #endregion
+
+    #region Redsys - Reembolso
+
+    /// <summary>
+    /// Procesa un reembolso vía Redsys para pagos capturados con tarjeta
+    /// </summary>
+    [HttpPost("{id}/redsys-refund")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
+    public async Task<ActionResult<RedsysRefundResponseDto>> ProcessRedsysRefund(
+        int id, 
+        [FromBody] RedsysRefundRequestDto dto)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            
+            var result = await _paymentService.ProcessRedsysRefundAsync(id, dto);
+            
+            if (!result.Success)
+            {
+                return BadRequest(new { 
+                    message = result.ResponseMessage ?? "Error en reembolso",
+                    responseCode = result.ResponseCode
+                });
+            }
+            
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    #endregion
+
+    #region Redsys - Webhook
+
+    /// <summary>
+    /// Endpoint para recibir notificaciones de Redsys (webhook)
+    /// Este endpoint no requiere autenticación
+    /// </summary>
+    [HttpPost("webhook")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Webhook([FromForm] RedsysWebhookDto webhook)
+    {
+        try
+        {
+            var success = await _paymentService.ProcessWebhookAsync(webhook);
+            
+            if (!success)
+            {
+                // Redsys espera HTTP 200 incluso si hay error, pero logueamos el problema
+                return Ok(new { message = "Webhook recibido pero no procesado" });
+            }
+            
+            return Ok(new { message = "OK" });
+        }
+        catch (Exception)
+        {
+            // Siempre devolver 200 a Redsys para evitar reintentos
+            return Ok(new { message = "Error interno" });
         }
     }
 

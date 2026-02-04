@@ -10,15 +10,21 @@ public class PaymentService : IPaymentService
     private readonly IPaymentRepository _paymentRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly IAppointmentRepository _appointmentRepository;
+    private readonly IRedsysService _redsysService;
+    private readonly ILogger<PaymentService> _logger;
 
     public PaymentService(
         IPaymentRepository paymentRepository,
         ICustomerRepository customerRepository,
-        IAppointmentRepository appointmentRepository)
+        IAppointmentRepository appointmentRepository,
+        IRedsysService redsysService,
+        ILogger<PaymentService> logger)
     {
         _paymentRepository = paymentRepository;
         _customerRepository = customerRepository;
         _appointmentRepository = appointmentRepository;
+        _redsysService = redsysService;
+        _logger = logger;
     }
 
     #region CRUD Básico
@@ -240,6 +246,416 @@ public class PaymentService : IPaymentService
             TotalSpent = totalSpent,
             PaymentCount = paymentCount
         };
+    }
+
+    #endregion
+
+    #region Redsys - Pre-autorización
+
+    public async Task<RedsysPreAuthResponseDto> CreatePreAuthorizationAsync(RedsysPreAuthRequestDto dto)
+    {
+        // Validar que Redsys está configurado
+        if (!_redsysService.IsConfigured())
+            throw new InvalidOperationException("Redsys no está configurado");
+
+        // Validar cliente
+        var customer = await _customerRepository.GetByIdAsync(dto.CustomerId);
+        if (customer == null)
+            throw new InvalidOperationException("Cliente no encontrado");
+
+        // Validar cita
+        var appointment = await _appointmentRepository.GetByIdAsync(dto.AppointmentId);
+        if (appointment == null)
+            throw new InvalidOperationException("Cita no encontrada");
+
+        if (appointment.CustomerId != dto.CustomerId)
+            throw new InvalidOperationException("La cita no pertenece al cliente especificado");
+
+        // Generar número de pedido único
+        var orderNumber = await _paymentRepository.GenerateOrderNumberAsync();
+
+        // Crear registro de pago en estado pending
+        var payment = new Payment
+        {
+            AppointmentId = dto.AppointmentId,
+            CustomerId = dto.CustomerId,
+            Amount = dto.Amount,
+            Currency = "EUR",
+            PaymentMethodType = PaymentMethod.Card,
+            Status = PaymentStatus.Pending,
+            RedsysOrderNumber = orderNumber,
+            RedsysTransactionType = RedsysTransactionType.PreAuthorization,
+            CustomerPaymentMethodId = dto.SavedPaymentMethodId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var createdPayment = await _paymentRepository.CreateAsync(payment);
+        if (createdPayment == null)
+            throw new InvalidOperationException("Error al crear el registro de pago");
+
+        // Llamar a Redsys
+        RedsysOperationResult result;
+
+        if (dto.SavedPaymentMethodId.HasValue)
+        {
+            // Usar tarjeta guardada (pendiente: obtener token del CustomerPaymentMethod)
+            // Por ahora lanzamos excepción - se implementará en Fase 3
+            throw new InvalidOperationException("Pago con tarjeta guardada se implementará en Fase 3");
+        }
+        else
+        {
+            // Usar idOper del frontend (InSite)
+            result = await _redsysService.CreatePreAuthorizationAsync(
+                orderNumber,
+                dto.Amount,
+                dto.IdOper,
+                $"appointment:{dto.AppointmentId}");
+        }
+
+        // Actualizar pago con resultado
+        if (result.Success)
+        {
+            createdPayment.Status = PaymentStatus.Authorized;
+            createdPayment.RedsysAuthCode = result.AuthCode;
+            createdPayment.RedsysResponse = result.ResponseCode;
+            createdPayment.RedsysCardNumber = result.CardNumber;
+            createdPayment.ProcessedAt = DateTime.UtcNow;
+            
+            if (!string.IsNullOrEmpty(result.RawResponse))
+            {
+                createdPayment.Metadata = result.RawResponse;
+            }
+
+            // Actualizar cita con datos de Redsys
+            appointment.RedsysOrderNumber = orderNumber;
+            appointment.RedsysPreAuthToken = result.AuthCode;
+            await _appointmentRepository.UpdateAsync(appointment.Id, appointment);
+        }
+        else
+        {
+            createdPayment.Status = PaymentStatus.Failed;
+            createdPayment.RedsysResponse = result.ResponseCode;
+            createdPayment.Notes = result.ErrorMessage;
+        }
+
+        createdPayment.UpdatedAt = DateTime.UtcNow;
+        await _paymentRepository.UpdateAsync(createdPayment.Id, createdPayment);
+
+        _logger.LogInformation(
+            "Pre-autorización {Status}. Payment: {PaymentId}, Order: {OrderNumber}, Amount: {Amount}",
+            result.Success ? "exitosa" : "fallida",
+            createdPayment.Id,
+            orderNumber,
+            dto.Amount);
+
+        return new RedsysPreAuthResponseDto
+        {
+            PaymentId = createdPayment.Id,
+            OrderNumber = orderNumber,
+            Amount = dto.Amount,
+            Status = createdPayment.Status,
+            AuthCode = result.AuthCode,
+            ResponseCode = result.ResponseCode,
+            ResponseMessage = result.ResponseMessage,
+            Success = result.Success,
+            CardLast4 = result.CardNumber?.Length > 4 
+                ? result.CardNumber.Substring(result.CardNumber.Length - 4) 
+                : null,
+            CardBrand = result.CardBrand,
+            CardToken = dto.SaveCard ? result.CardToken : null,
+            ExpiresAt = result.Success ? DateTime.UtcNow.AddDays(7) : null
+        };
+    }
+
+    #endregion
+
+    #region Redsys - Confirmación/Captura
+
+    public async Task<RedsysConfirmResponseDto> ConfirmPaymentAsync(int paymentId, RedsysConfirmRequestDto? dto = null)
+    {
+        var payment = await _paymentRepository.GetByIdAsync(paymentId);
+        if (payment == null)
+            throw new InvalidOperationException("Pago no encontrado");
+
+        if (!PaymentStatus.IsConfirmable(payment.Status))
+            throw new InvalidOperationException(
+                $"No se puede confirmar un pago en estado '{payment.Status}'");
+
+        if (string.IsNullOrEmpty(payment.RedsysOrderNumber))
+            throw new InvalidOperationException("El pago no tiene número de pedido Redsys");
+
+        // Determinar importe a capturar
+        var captureAmount = dto?.Amount ?? payment.Amount;
+        if (captureAmount > payment.Amount)
+            throw new InvalidOperationException(
+                $"El importe a capturar ({captureAmount:C}) no puede superar el pre-autorizado ({payment.Amount:C})");
+
+        // Llamar a Redsys
+        var result = await _redsysService.ConfirmPreAuthorizationAsync(
+            payment.RedsysOrderNumber,
+            captureAmount);
+
+        // Actualizar pago
+        if (result.Success)
+        {
+            payment.Status = PaymentStatus.Captured;
+            payment.Amount = captureAmount; // Actualizar al importe realmente capturado
+            payment.RedsysAuthCode = result.AuthCode ?? payment.RedsysAuthCode;
+            payment.RedsysResponse = result.ResponseCode;
+            payment.RedsysTransactionType = RedsysTransactionType.Confirmation;
+            payment.ProcessedAt = DateTime.UtcNow;
+            
+            if (!string.IsNullOrEmpty(dto?.Notes))
+            {
+                payment.Notes = string.IsNullOrEmpty(payment.Notes) 
+                    ? dto.Notes 
+                    : $"{payment.Notes}\n{dto.Notes}";
+            }
+        }
+        else
+        {
+            payment.RedsysResponse = result.ResponseCode;
+            payment.Notes = $"{payment.Notes}\n[Error confirmación: {result.ErrorMessage}]";
+        }
+
+        payment.UpdatedAt = DateTime.UtcNow;
+        await _paymentRepository.UpdateAsync(paymentId, payment);
+
+        _logger.LogInformation(
+            "Confirmación {Status}. Payment: {PaymentId}, Order: {OrderNumber}, Amount: {Amount}",
+            result.Success ? "exitosa" : "fallida",
+            paymentId,
+            payment.RedsysOrderNumber,
+            captureAmount);
+
+        return new RedsysConfirmResponseDto
+        {
+            PaymentId = paymentId,
+            OrderNumber = payment.RedsysOrderNumber,
+            OriginalAmount = payment.Amount,
+            CapturedAmount = captureAmount,
+            Status = payment.Status,
+            AuthCode = result.AuthCode,
+            ResponseCode = result.ResponseCode,
+            ResponseMessage = result.ResponseMessage,
+            Success = result.Success,
+            ProcessedAt = payment.ProcessedAt
+        };
+    }
+
+    #endregion
+
+    #region Redsys - Cancelación
+
+    public async Task<RedsysCancelResponseDto> CancelPreAuthorizationAsync(int paymentId, RedsysCancelRequestDto? dto = null)
+    {
+        var payment = await _paymentRepository.GetByIdAsync(paymentId);
+        if (payment == null)
+            throw new InvalidOperationException("Pago no encontrado");
+
+        if (!PaymentStatus.IsCancellable(payment.Status))
+            throw new InvalidOperationException(
+                $"No se puede cancelar un pago en estado '{payment.Status}'");
+
+        if (string.IsNullOrEmpty(payment.RedsysOrderNumber))
+            throw new InvalidOperationException("El pago no tiene número de pedido Redsys");
+
+        // Llamar a Redsys
+        var result = await _redsysService.CancelPreAuthorizationAsync(
+            payment.RedsysOrderNumber,
+            payment.Amount);
+
+        // Actualizar pago
+        if (result.Success)
+        {
+            payment.Status = PaymentStatus.Cancelled;
+            payment.RedsysResponse = result.ResponseCode;
+            payment.RedsysTransactionType = RedsysTransactionType.Cancellation;
+            payment.ProcessedAt = DateTime.UtcNow;
+            
+            if (!string.IsNullOrEmpty(dto?.Reason))
+            {
+                payment.Notes = string.IsNullOrEmpty(payment.Notes) 
+                    ? $"Cancelado: {dto.Reason}" 
+                    : $"{payment.Notes}\n[Cancelado: {dto.Reason}]";
+            }
+        }
+        else
+        {
+            payment.RedsysResponse = result.ResponseCode;
+            payment.Notes = $"{payment.Notes}\n[Error cancelación: {result.ErrorMessage}]";
+        }
+
+        payment.UpdatedAt = DateTime.UtcNow;
+        await _paymentRepository.UpdateAsync(paymentId, payment);
+
+        _logger.LogInformation(
+            "Cancelación {Status}. Payment: {PaymentId}, Order: {OrderNumber}",
+            result.Success ? "exitosa" : "fallida",
+            paymentId,
+            payment.RedsysOrderNumber);
+
+        return new RedsysCancelResponseDto
+        {
+            PaymentId = paymentId,
+            OrderNumber = payment.RedsysOrderNumber,
+            Amount = payment.Amount,
+            Status = payment.Status,
+            ResponseCode = result.ResponseCode,
+            ResponseMessage = result.ResponseMessage,
+            Success = result.Success,
+            CancelledAt = result.Success ? DateTime.UtcNow : null
+        };
+    }
+
+    #endregion
+
+    #region Redsys - Reembolso
+
+    public async Task<RedsysRefundResponseDto> ProcessRedsysRefundAsync(int paymentId, RedsysRefundRequestDto dto)
+    {
+        var payment = await _paymentRepository.GetByIdAsync(paymentId);
+        if (payment == null)
+            throw new InvalidOperationException("Pago no encontrado");
+
+        if (!PaymentStatus.IsRefundable(payment.Status))
+            throw new InvalidOperationException(
+                $"No se puede reembolsar un pago en estado '{payment.Status}'");
+
+        if (string.IsNullOrEmpty(payment.RedsysOrderNumber))
+            throw new InvalidOperationException("El pago no tiene número de pedido Redsys");
+
+        if (dto.Amount > payment.RemainingAmount)
+            throw new InvalidOperationException(
+                $"El importe a reembolsar ({dto.Amount:C}) supera el pendiente ({payment.RemainingAmount:C})");
+
+        // Llamar a Redsys
+        var result = await _redsysService.ProcessRefundAsync(
+            payment.RedsysOrderNumber,
+            dto.Amount);
+
+        // Actualizar pago
+        if (result.Success)
+        {
+            payment.RefundedAmount += dto.Amount;
+            payment.RefundedAt = DateTime.UtcNow;
+            payment.Status = payment.IsFullyRefunded 
+                ? PaymentStatus.Refunded 
+                : PaymentStatus.PartiallyRefunded;
+            payment.RedsysResponse = result.ResponseCode;
+            
+            if (!string.IsNullOrEmpty(dto.Reason))
+            {
+                payment.Notes = string.IsNullOrEmpty(payment.Notes) 
+                    ? $"Reembolso: {dto.Reason}" 
+                    : $"{payment.Notes}\n[Reembolso {dto.Amount:C}: {dto.Reason}]";
+            }
+        }
+        else
+        {
+            payment.RedsysResponse = result.ResponseCode;
+            payment.Notes = $"{payment.Notes}\n[Error reembolso: {result.ErrorMessage}]";
+        }
+
+        payment.UpdatedAt = DateTime.UtcNow;
+        await _paymentRepository.UpdateAsync(paymentId, payment);
+
+        _logger.LogInformation(
+            "Reembolso {Status}. Payment: {PaymentId}, Order: {OrderNumber}, Amount: {Amount}",
+            result.Success ? "exitoso" : "fallido",
+            paymentId,
+            payment.RedsysOrderNumber,
+            dto.Amount);
+
+        return new RedsysRefundResponseDto
+        {
+            PaymentId = paymentId,
+            OrderNumber = payment.RedsysOrderNumber,
+            OriginalAmount = payment.Amount,
+            RefundedAmount = dto.Amount,
+            TotalRefunded = payment.RefundedAmount,
+            RemainingAmount = payment.RemainingAmount,
+            Status = payment.Status,
+            ResponseCode = result.ResponseCode,
+            ResponseMessage = result.ResponseMessage,
+            Success = result.Success,
+            RefundedAt = result.Success ? DateTime.UtcNow : null
+        };
+    }
+
+    #endregion
+
+    #region Redsys - Webhook
+
+    public async Task<bool> ProcessWebhookAsync(RedsysWebhookDto webhook)
+    {
+        // Validar firma
+        if (!_redsysService.ValidateWebhookSignature(webhook))
+        {
+            _logger.LogWarning("Webhook Redsys con firma inválida");
+            return false;
+        }
+
+        // Parsear datos
+        var data = _redsysService.ParseWebhookData(webhook.Ds_MerchantParameters);
+        if (data == null || string.IsNullOrEmpty(data.Ds_Order))
+        {
+            _logger.LogWarning("Webhook Redsys con datos inválidos");
+            return false;
+        }
+
+        // Buscar pago por número de pedido
+        var payment = await _paymentRepository.GetByRedsysOrderNumberAsync(data.Ds_Order);
+        if (payment == null)
+        {
+            _logger.LogWarning("Webhook para pedido no encontrado: {OrderNumber}", data.Ds_Order);
+            return false;
+        }
+
+        // Actualizar estado según respuesta
+        var previousStatus = payment.Status;
+        
+        if (data.IsSuccessful)
+        {
+            // Determinar nuevo estado según tipo de transacción
+            payment.Status = data.Ds_TransactionType switch
+            {
+                RedsysTransactionType.PreAuthorization => PaymentStatus.Authorized,
+                RedsysTransactionType.Confirmation => PaymentStatus.Captured,
+                RedsysTransactionType.Cancellation => PaymentStatus.Cancelled,
+                RedsysTransactionType.AutomaticRefund => payment.IsFullyRefunded 
+                    ? PaymentStatus.Refunded 
+                    : PaymentStatus.PartiallyRefunded,
+                _ => payment.Status
+            };
+
+            payment.RedsysAuthCode = data.Ds_AuthorisationCode ?? payment.RedsysAuthCode;
+            payment.RedsysCardNumber = data.Ds_Card_Number ?? payment.RedsysCardNumber;
+            payment.ProcessedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            // Solo marcar como fallido si no estaba ya en un estado final
+            if (!PaymentStatus.IsFinal(payment.Status))
+            {
+                payment.Status = PaymentStatus.Failed;
+            }
+        }
+
+        payment.RedsysResponse = data.Ds_Response;
+        payment.RedsysTransactionType = data.Ds_TransactionType;
+        payment.UpdatedAt = DateTime.UtcNow;
+
+        await _paymentRepository.UpdateAsync(payment.Id, payment);
+
+        _logger.LogInformation(
+            "Webhook procesado. Order: {OrderNumber}, Status: {PrevStatus} -> {NewStatus}, Response: {Response}",
+            data.Ds_Order,
+            previousStatus,
+            payment.Status,
+            data.Ds_Response);
+
+        return true;
     }
 
     #endregion
