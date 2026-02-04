@@ -195,20 +195,6 @@ public class InventoryController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene una venta por su ID.
-    /// </summary>
-    [HttpGet("sales/{id}")]
-    public async Task<ActionResult<ProductSaleDtoOut>> GetSaleById(int id)
-    {
-        var sale = await _productService.GetSaleByIdAsync(id);
-        if (sale == null)
-        {
-            return NotFound(new { message = "Venta no encontrada" });
-        }
-        return Ok(sale);
-    }
-
-    /// <summary>
     /// Obtiene un resumen de ventas.
     /// </summary>
     [HttpGet("sales/summary")]
@@ -218,6 +204,20 @@ public class InventoryController : ControllerBase
     {
         var summary = await _productService.GetSalesSummaryAsync(fromDate, toDate);
         return Ok(summary);
+    }
+
+    /// <summary>
+    /// Obtiene una venta por su ID.
+    /// </summary>
+    [HttpGet("sales/{id:int}")]
+    public async Task<ActionResult<ProductSaleDtoOut>> GetSaleById(int id)
+    {
+        var sale = await _productService.GetSaleByIdAsync(id);
+        if (sale == null)
+        {
+            return NotFound(new { message = "Venta no encontrada" });
+        }
+        return Ok(sale);
     }
 
     /// <summary>
@@ -257,14 +257,4 @@ public class InventoryController : ControllerBase
     }
 
     #endregion
-}
-
-/// <summary>
-/// DTO para registrar merma.
-/// </summary>
-public class WasteDtoIn
-{
-    public int ProductId { get; set; }
-    public int Quantity { get; set; }
-    public string Notes { get; set; } = string.Empty;
 }

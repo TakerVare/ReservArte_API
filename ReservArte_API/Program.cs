@@ -69,8 +69,8 @@ builder.Services.AddScoped<IReminderService, ReminderService>();
 builder.Services.AddScoped<IEmailSenderService, MockEmailSenderService>();
 builder.Services.AddScoped<IWhatsAppSenderService, MockWhatsAppSenderService>();
 
-// Background job para procesar recordatorios
-builder.Services.AddHostedService<ReminderBackgroundService>();
+// Background job para procesar recordatorios (desactivado - requiere DB)
+// builder.Services.AddHostedService<ReminderBackgroundService>();
 
 // === Service Photo System ===
 // Configuration
@@ -82,8 +82,8 @@ builder.Services.AddScoped<IServicePhotoRepository, ServicePhotoRepository>();
 // Services
 builder.Services.AddScoped<IServicePhotoService, ServicePhotoService>();
 
-// Background job para limpieza RGPD de fotos expiradas
-builder.Services.AddHostedService<PhotoCleanupBackgroundService>();
+// Background job para limpieza RGPD de fotos expiradas (desactivado - requiere DB)
+// builder.Services.AddHostedService<PhotoCleanupBackgroundService>();
 
 // === Product Management System ===
 // Repositories

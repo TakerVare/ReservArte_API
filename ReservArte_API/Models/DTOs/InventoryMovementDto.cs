@@ -83,3 +83,19 @@ public class InventoryMovementFilterDto
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
 }
+
+/// <summary>
+/// DTO para registrar merma de producto.
+/// </summary>
+public class WasteDtoIn
+{
+    [Required(ErrorMessage = "El ID del producto es obligatorio")]
+    public int ProductId { get; set; }
+    
+    [Required(ErrorMessage = "La cantidad es obligatoria")]
+    [Range(1, int.MaxValue, ErrorMessage = "La cantidad debe ser mayor a 0")]
+    public int Quantity { get; set; }
+    
+    [Required(ErrorMessage = "El motivo es obligatorio")]
+    public string Notes { get; set; } = string.Empty;
+}
