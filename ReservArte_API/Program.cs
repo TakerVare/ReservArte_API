@@ -38,6 +38,7 @@ builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddScoped<IWaitingListService, WaitingListService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -47,6 +48,7 @@ builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
 builder.Services.AddScoped<IWaitingListRepository, WaitingListRepository>();
 builder.Services.AddScoped<ICancellationPolicyRepository, CancellationPolicyRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 
 
 // Add Authorization Policies
