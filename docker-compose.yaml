@@ -1,0 +1,90 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: reservarte_sqlserver
+    ports:
+      - "7068:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=ReservArtePass2024(!)
+      - MSSQL_PID=Express
+      - MSSQL_MEMORY_LIMIT_MB=2048
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'ReservArtePass2024(!)' -Q 'SELECT 1' || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  db-init:
+    image: mcr.microsoft.com/mssql-tools
+    container_name: reservarte_db_init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    volumes:
+      - ./createDbReservArte.sql:/createDbReservArte.sql
+    networks:
+      - backend
+    command: >
+      bash -c "
+      echo 'Esperando a que SQL Server esté completamente listo...' &&
+      sleep 10 &&
+      echo 'Ejecutando script de inicialización de base de datos...' &&
+      /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'ReservArtePass2024(!)' -i /createDbReservArte.sql &&
+      echo 'Base de datos ReservArteDB inicializada correctamente' &&
+      echo 'Verificando tablas creadas:' &&
+      /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P 'ReservArtePass2024(!)' -d ReservArteDB -Q 'SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES ORDER BY TABLE_NAME' &&
+      echo 'Inicialización completada exitosamente'
+      "
+    restart: "no"
+
+  api:
+    image: gsvmm/reservarte-api:latest 
+    container_name: reservarte_api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5297:5000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__ReservArteDB=Server=sqlserver,1433;Database=ReservArteDB;User Id=sa;Password=ReservArtePass2024(!);TrustServerCertificate=True;
+      - JWT__ValidAudience=https://localhost:7000
+      - JWT__ValidIssuer=https://localhost:7278
+      - JWT__SecretKey=MyPass@word2MyPass@word2MyPass@word2
+      - Redsys__Environment=test
+      - Redsys__MerchantCode=999008881
+      - Redsys__Terminal=1
+      - Redsys__Currency=978
+      - Reminder__BaseUrl=http://localhost:5297
+      - Reminder__BusinessName=ReservArte
+      - Reminder__IntervalMinutes=5
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    networks:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: curl --fail http://localhost:5000/swagger/index.html || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  sqlserver_data:
+    driver: local
