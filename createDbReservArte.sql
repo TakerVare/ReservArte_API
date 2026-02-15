@@ -1,199 +1,255 @@
 USE master;
 GO
 
--- Crear base de datos solo si no existe
-IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'ReservArteDB')
+-- Eliminar BD si existe
+IF EXISTS (SELECT name FROM sys.databases WHERE name = 'ReservArteDB')
 BEGIN
-    CREATE DATABASE ReservArteDB;
-    PRINT 'Base de datos ReservArteDB creada correctamente';
-END
-ELSE
-BEGIN
-    PRINT 'Base de datos ReservArteDB ya existe';
+    ALTER DATABASE ReservArteDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE ReservArteDB;
 END
 GO
 
--- Verificar que la base de datos se creó correctamente
-SELECT name, database_id, create_date 
-FROM sys.databases 
-WHERE name = 'ReservArteDB';
+CREATE DATABASE ReservArteDB;
 GO
 
--- Usar la base de datos
 USE ReservArteDB;
 GO
 
--- ================================
--- CREAR TABLAS (Orden: Master -> Detail)
--- ================================
+PRINT 'Base de datos ReservArteDB creada correctamente';
 
--- Tabla Users (Base para Customers, Employees, Admins)
+-- ============================================
+-- TABLA USERS
+-- ============================================
 CREATE TABLE Users (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Id INT PRIMARY KEY IDENTITY(1,1),
     FirstName NVARCHAR(100) NOT NULL,
     LastName NVARCHAR(100) NOT NULL,
-    Email NVARCHAR(100) NOT NULL UNIQUE,
-    Phone NVARCHAR(20),
-    Rol NVARCHAR(50) NOT NULL,
-    ProfileImageUrl NVARCHAR(500),
-    CreatedAt DATETIME DEFAULT GETDATE()
+    Email NVARCHAR(255) NOT NULL UNIQUE,
+    Password NVARCHAR(100) NOT NULL,
+    Rol NVARCHAR(50) NOT NULL CHECK (Rol IN ('admin', 'employee', 'client')),
+    Phone NVARCHAR(20) NULL,
+    ProfileImageUrl NVARCHAR(500) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
--- Tabla Customers (Hereda de Users)
+-- ============================================
+-- TABLA CUSTOMERS
+-- ============================================
 CREATE TABLE Customers (
-    Id INT PRIMARY KEY,
-    BirthDate DATETIME,
-    Category NVARCHAR(50) DEFAULT 'regular',
-    LoyaltyPoints INT DEFAULT 0,
-    IsBlocked BIT DEFAULT 0,
-    BlockedReason NVARCHAR(500),
-    PreferredContactMethod NVARCHAR(50) DEFAULT 'email',
-    MarketingConsent BIT DEFAULT 0,
-    FOREIGN KEY (Id) REFERENCES Users(Id) ON DELETE CASCADE
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    FirstName NVARCHAR(100) NOT NULL,
+    LastName NVARCHAR(100) NOT NULL,
+    Email NVARCHAR(255) NOT NULL UNIQUE,
+    Phone NVARCHAR(20) NULL,
+    Rol NVARCHAR(50) NOT NULL DEFAULT 'client',
+    ProfileImageUrl NVARCHAR(500) NULL,
+    BirthDate DATE NULL,
+    Category NVARCHAR(50) NOT NULL DEFAULT 'regular' CHECK (Category IN ('regular', 'vip', 'blocked')),
+    LoyaltyPoints INT NOT NULL DEFAULT 0,
+    IsBlocked BIT NOT NULL DEFAULT 0,
+    BlockedReason NVARCHAR(500) NULL,
+    PreferredContactMethod NVARCHAR(50) NOT NULL DEFAULT 'email' CHECK (PreferredContactMethod IN ('email', 'phone', 'sms', 'whatsapp')),
+    MarketingConsent BIT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
--- Tabla Employees (Hereda de Users)
+-- ============================================
+-- TABLA EMPLOYEES
+-- ============================================
 CREATE TABLE Employees (
-    Id INT PRIMARY KEY,
-    HireDate DATETIME,
-    IsActive BIT DEFAULT 1,
-    FOREIGN KEY (Id) REFERENCES Users(Id) ON DELETE CASCADE
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    FirstName NVARCHAR(100) NOT NULL,
+    LastName NVARCHAR(100) NOT NULL,
+    Email NVARCHAR(255) NOT NULL UNIQUE,
+    Phone NVARCHAR(20) NULL,
+    Rol NVARCHAR(50) NOT NULL DEFAULT 'employee',
+    ProfileImageUrl NVARCHAR(500) NULL,
+    HireDate DATE NULL,
+    IsActive BIT NOT NULL DEFAULT 1
 );
 
--- Tabla ServiceCategories
+-- ============================================
+-- RESTO DE TABLAS
+-- ============================================
+
 CREATE TABLE ServiceCategories (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Id INT PRIMARY KEY IDENTITY(1,1),
     Name NVARCHAR(100) NOT NULL,
-    Description NVARCHAR(500),
-    Color NVARCHAR(20),
-    DisplayOrder INT DEFAULT 0,
-    IsActive BIT DEFAULT 1,
-    CreatedAt DATETIME DEFAULT GETDATE()
+    Description NVARCHAR(500) NULL,
+    Color NVARCHAR(20) NULL,
+    DisplayOrder INT NOT NULL DEFAULT 0,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
--- Tabla Services
 CREATE TABLE Services (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Id INT PRIMARY KEY IDENTITY(1,1),
     Name NVARCHAR(200) NOT NULL,
-    Description NVARCHAR(1000),
-    DurationMinutes INT NOT NULL CHECK (DurationMinutes > 0),
-    BasePrice DECIMAL(10,2) NOT NULL CHECK (BasePrice >= 0),
-    CategoryId INT,
-    ImageUrl NVARCHAR(500),
-    IsActive BIT DEFAULT 1,
-    RequiresAllergyTest BIT DEFAULT 0,
-    AllergyTestHoursBefore INT DEFAULT 48,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    UpdatedAt DATETIME,
+    Description NVARCHAR(MAX) NULL,
+    DurationMinutes INT NOT NULL,
+    BasePrice DECIMAL(10,2) NOT NULL,
+    CategoryId INT NULL,
+    ImageUrl NVARCHAR(500) NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    RequiresAllergyTest BIT NOT NULL DEFAULT 0,
+    AllergyTestHoursBefore INT NOT NULL DEFAULT 48,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NULL,
     FOREIGN KEY (CategoryId) REFERENCES ServiceCategories(Id)
 );
 
--- Tabla ServiceVariations
 CREATE TABLE ServiceVariations (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Id INT PRIMARY KEY IDENTITY(1,1),
     ServiceId INT NOT NULL,
-    Name NVARCHAR(200) NOT NULL,
-    PriceModifier DECIMAL(10,2) DEFAULT 0,
-    DurationModifier INT DEFAULT 0,
-    IsActive BIT DEFAULT 1,
-    CreatedAt DATETIME DEFAULT GETDATE(),
+    Name NVARCHAR(100) NOT NULL,
+    PriceModifier DECIMAL(10,2) NOT NULL DEFAULT 0,
+    DurationModifier INT NOT NULL DEFAULT 0,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY (ServiceId) REFERENCES Services(Id) ON DELETE CASCADE
 );
 
--- Tabla ServicePricings (Precios por nivel de empleado)
 CREATE TABLE ServicePricings (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Id INT PRIMARY KEY IDENTITY(1,1),
     ServiceId INT NOT NULL,
-    EmployeeLevel NVARCHAR(50) NOT NULL,
-    Price DECIMAL(10,2) NOT NULL CHECK (Price >= 0),
-    CreatedAt DATETIME DEFAULT GETDATE(),
+    EmployeeLevel NVARCHAR(50) NOT NULL CHECK (EmployeeLevel IN ('Junior', 'Senior', 'Expert')),
+    Price DECIMAL(10,2) NOT NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY (ServiceId) REFERENCES Services(Id) ON DELETE CASCADE
 );
 
--- Tabla Products
+CREATE TABLE ProductCategories (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Name NVARCHAR(100) NOT NULL,
+    Description NVARCHAR(500) NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+);
+
 CREATE TABLE Products (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Id INT PRIMARY KEY IDENTITY(1,1),
     Name NVARCHAR(200) NOT NULL,
-    Description NVARCHAR(1000),
-    Brand NVARCHAR(100),
-    Sku NVARCHAR(100),
+    Description NVARCHAR(MAX) NULL,
+    Brand NVARCHAR(100) NULL,
+    Sku NVARCHAR(100) NULL UNIQUE,
     Price DECIMAL(10,2) NOT NULL DEFAULT 0,
     Stock INT NOT NULL DEFAULT 0,
-    MinStockAlert INT DEFAULT 10,
-    ImageUrl NVARCHAR(500),
-    CategoryId INT,
-    IsActive BIT DEFAULT 1,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    UpdatedAt DATETIME
+    MinStockAlert INT NOT NULL DEFAULT 5,
+    ImageUrl NVARCHAR(500) NULL,
+    CategoryId INT NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NULL,
+    FOREIGN KEY (CategoryId) REFERENCES ProductCategories(Id)
 );
 
--- Tabla ProductCategories
-CREATE TABLE ProductCategories (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    Name NVARCHAR(100) NOT NULL,
-    Description NVARCHAR(500),
-    IsActive BIT DEFAULT 1,
-    CreatedAt DATETIME DEFAULT GETDATE()
-);
-
--- Tabla ServiceProducts (Relación N:N entre Services y Products)
 CREATE TABLE ServiceProducts (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Id INT PRIMARY KEY IDENTITY(1,1),
     ServiceId INT NOT NULL,
     ProductId INT NOT NULL,
-    QuantityUsed DECIMAL(10,2),
-    Notes NVARCHAR(500),
+    QuantityUsed DECIMAL(10,2) NULL,
+    Notes NVARCHAR(500) NULL,
     FOREIGN KEY (ServiceId) REFERENCES Services(Id) ON DELETE CASCADE,
     FOREIGN KEY (ProductId) REFERENCES Products(Id)
 );
 
--- Tabla CustomerPaymentMethods
-CREATE TABLE CustomerPaymentMethods (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    CustomerId INT NOT NULL,
-    RedsysToken NVARCHAR(500) NOT NULL,
-    RedsysCofTxnid NVARCHAR(100),
-    CardLast4 NVARCHAR(4) NOT NULL,
-    CardBrand NVARCHAR(50) NOT NULL,
-    CardExpiry NVARCHAR(4) NOT NULL,
-    IsDefault BIT DEFAULT 0,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    UpdatedAt DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (CustomerId) REFERENCES Customers(Id) ON DELETE CASCADE
+CREATE TABLE ServicePackages (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Name NVARCHAR(200) NOT NULL,
+    Description NVARCHAR(MAX) NULL,
+    TotalPrice DECIMAL(10,2) NOT NULL,
+    DiscountPercentage DECIMAL(5,2) NOT NULL DEFAULT 0,
+    ImageUrl NVARCHAR(500) NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NULL
 );
 
--- Tabla Appointments
+CREATE TABLE ServicePackageItems (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    ServicePackageId INT NOT NULL,
+    ServiceId INT NOT NULL,
+    [Order] INT NOT NULL,
+    FOREIGN KEY (ServicePackageId) REFERENCES ServicePackages(Id) ON DELETE CASCADE,
+    FOREIGN KEY (ServiceId) REFERENCES Services(Id)
+);
+
+CREATE TABLE ServicePromotions (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    ServiceId INT NULL,
+    ServicePackageId INT NULL,
+    Name NVARCHAR(200) NOT NULL,
+    Description NVARCHAR(MAX) NULL,
+    DiscountPercentage DECIMAL(5,2) NOT NULL,
+    DiscountAmount DECIMAL(10,2) NULL,
+    StartDate DATETIME2 NOT NULL,
+    EndDate DATETIME2 NOT NULL,
+    IsSeasonalService BIT NOT NULL DEFAULT 0,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    FOREIGN KEY (ServiceId) REFERENCES Services(Id),
+    FOREIGN KEY (ServicePackageId) REFERENCES ServicePackages(Id),
+    CHECK ((ServiceId IS NOT NULL AND ServicePackageId IS NULL) OR (ServiceId IS NULL AND ServicePackageId IS NOT NULL))
+);
+
+CREATE TABLE EmployeeAvailabilities (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    EmployeeId INT NOT NULL,
+    DayOfWeek INT NOT NULL CHECK (DayOfWeek BETWEEN 0 AND 6),
+    StartTime TIME NOT NULL,
+    EndTime TIME NOT NULL,
+    IsRecurring BIT NOT NULL DEFAULT 1,
+    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id) ON DELETE CASCADE
+);
+
+CREATE TABLE EmployeeExceptions (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    EmployeeId INT NOT NULL,
+    StartDateTime DATETIME2 NOT NULL,
+    EndDateTime DATETIME2 NOT NULL,
+    Reason NVARCHAR(500) NULL,
+    Type NVARCHAR(50) NOT NULL CHECK (Type IN ('vacation', 'sick_leave', 'personal', 'training', 'other')),
+    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id) ON DELETE CASCADE
+);
+
+CREATE TABLE EmployeeServices (
+    EmployeeId INT NOT NULL,
+    ServiceId INT NOT NULL,
+    ProficiencyLevel INT NOT NULL DEFAULT 1 CHECK (ProficiencyLevel BETWEEN 1 AND 5),
+    PRIMARY KEY (EmployeeId, ServiceId),
+    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id) ON DELETE CASCADE,
+    FOREIGN KEY (ServiceId) REFERENCES Services(Id) ON DELETE CASCADE
+);
+
 CREATE TABLE Appointments (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Id INT PRIMARY KEY IDENTITY(1,1),
     CustomerId INT NOT NULL,
     EmployeeId INT NOT NULL,
     AppointmentDate DATE NOT NULL,
     StartTime TIME NOT NULL,
     EndTime TIME NOT NULL,
-    Status NVARCHAR(50) NOT NULL DEFAULT 'pending',
-    TotalPrice DECIMAL(10,2) NOT NULL DEFAULT 0,
+    Status NVARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (Status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled', 'cancelled_by_customer', 'cancelled_by_business', 'no_show')),
+    TotalPrice DECIMAL(10,2) NOT NULL,
     DepositAmount DECIMAL(10,2) NOT NULL DEFAULT 0,
-    RedsysOrderNumber NVARCHAR(12),
-    RedsysPreAuthToken NVARCHAR(500),
-    PaymentMethodId INT,
-    CancellationReason NVARCHAR(1000),
-    CancelledAt DATETIME,
-    CancelledById INT,
-    CancelledByType NVARCHAR(50),
-    Notes NVARCHAR(2000),
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    UpdatedAt DATETIME,
+    RedsysOrderNumber NVARCHAR(50) NULL,
+    RedsysPreAuthToken NVARCHAR(200) NULL,
+    PaymentMethodId INT NULL,
+    CancellationReason NVARCHAR(500) NULL,
+    CancelledAt DATETIME2 NULL,
+    CancelledById INT NULL,
+    CancelledByType NVARCHAR(50) NULL CHECK (CancelledByType IN ('customer', 'business', 'system')),
+    Notes NVARCHAR(MAX) NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NULL,
     FOREIGN KEY (CustomerId) REFERENCES Customers(Id),
-    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id),
-    FOREIGN KEY (PaymentMethodId) REFERENCES CustomerPaymentMethods(Id)
+    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id)
 );
 
--- Tabla AppointmentServiceItems
 CREATE TABLE AppointmentServiceItems (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Id INT PRIMARY KEY IDENTITY(1,1),
     AppointmentId INT NOT NULL,
     ServiceId INT NOT NULL,
-    ServiceVariationId INT,
+    ServiceVariationId INT NULL,
     Price DECIMAL(10,2) NOT NULL,
     DurationMinutes INT NOT NULL,
     [Order] INT NOT NULL,
@@ -202,261 +258,135 @@ CREATE TABLE AppointmentServiceItems (
     FOREIGN KEY (ServiceVariationId) REFERENCES ServiceVariations(Id)
 );
 
--- Tabla Payments
+CREATE TABLE CustomerPaymentMethods (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    CustomerId INT NOT NULL,
+    RedsysToken NVARCHAR(200) NOT NULL,
+    RedsysCofTxnid NVARCHAR(100) NULL,
+    CardLast4 NVARCHAR(4) NOT NULL,
+    CardBrand NVARCHAR(50) NOT NULL,
+    CardExpiry NVARCHAR(4) NOT NULL,
+    IsDefault BIT NOT NULL DEFAULT 0,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    FOREIGN KEY (CustomerId) REFERENCES Customers(Id) ON DELETE CASCADE
+);
+
 CREATE TABLE Payments (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    AppointmentId INT,
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    AppointmentId INT NULL,
     CustomerId INT NOT NULL,
     Amount DECIMAL(10,2) NOT NULL,
-    Currency NVARCHAR(3) DEFAULT 'EUR',
-    PaymentMethodType NVARCHAR(50) NOT NULL,
-    Status NVARCHAR(50) NOT NULL,
-    RedsysOrderNumber NVARCHAR(12),
-    RedsysAuthCode NVARCHAR(50),
-    RedsysResponse NVARCHAR(MAX),
-    RedsysTransactionType NVARCHAR(10),
-    RedsysCardNumber NVARCHAR(20),
-    CustomerPaymentMethodId INT,
-    ProcessedAt DATETIME,
-    RefundedAmount DECIMAL(10,2) DEFAULT 0,
-    RefundedAt DATETIME,
-    Metadata NVARCHAR(MAX),
-    Notes NVARCHAR(1000),
-    RegisteredById INT,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    UpdatedAt DATETIME,
+    Currency NVARCHAR(3) NOT NULL DEFAULT 'EUR',
+    PaymentMethodType NVARCHAR(50) NOT NULL CHECK (PaymentMethodType IN ('card', 'cash', 'transfer', 'bizum')),
+    Status NVARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (Status IN ('pending', 'authorized', 'captured', 'failed', 'cancelled', 'refunded', 'partially_refunded')),
+    RedsysOrderNumber NVARCHAR(50) NULL UNIQUE,
+    RedsysAuthCode NVARCHAR(50) NULL,
+    RedsysResponse NVARCHAR(MAX) NULL,
+    RedsysTransactionType NVARCHAR(10) NULL,
+    RedsysCardNumber NVARCHAR(19) NULL,
+    CustomerPaymentMethodId INT NULL,
+    ProcessedAt DATETIME2 NULL,
+    RefundedAmount DECIMAL(10,2) NOT NULL DEFAULT 0,
+    RefundedAt DATETIME2 NULL,
+    Metadata NVARCHAR(MAX) NULL,
+    Notes NVARCHAR(500) NULL,
+    RegisteredById INT NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NULL,
     FOREIGN KEY (AppointmentId) REFERENCES Appointments(Id),
     FOREIGN KEY (CustomerId) REFERENCES Customers(Id),
     FOREIGN KEY (CustomerPaymentMethodId) REFERENCES CustomerPaymentMethods(Id)
 );
 
--- Tabla CancellationPolicies
-CREATE TABLE CancellationPolicies (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    MinHoursBeforeCancel INT NOT NULL,
-    PenaltyPercentage INT NOT NULL,
-    MaxNoShowsBeforeBlock INT NOT NULL,
-    VipMinHoursBeforeCancel INT,
-    VipPenaltyPercentage INT,
-    IsActive BIT DEFAULT 1,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    UpdatedAt DATETIME
-);
-
--- Tabla CustomerNotes
 CREATE TABLE CustomerNotes (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Id INT PRIMARY KEY IDENTITY(1,1),
     CustomerId INT NOT NULL,
     EmployeeId INT NOT NULL,
-    Note NVARCHAR(2000) NOT NULL,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    EmployeeName NVARCHAR(200),
+    Note NVARCHAR(MAX) NOT NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY (CustomerId) REFERENCES Customers(Id) ON DELETE CASCADE,
     FOREIGN KEY (EmployeeId) REFERENCES Employees(Id)
 );
 
--- Tabla CustomerAllergies
 CREATE TABLE CustomerAllergies (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Id INT PRIMARY KEY IDENTITY(1,1),
     CustomerId INT NOT NULL,
     AllergyDescription NVARCHAR(500) NOT NULL,
-    Severity NVARCHAR(50) NOT NULL,
-    CreatedAt DATETIME DEFAULT GETDATE(),
+    Severity NVARCHAR(50) NOT NULL CHECK (Severity IN ('mild', 'moderate', 'severe')),
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY (CustomerId) REFERENCES Customers(Id) ON DELETE CASCADE
 );
 
--- Tabla CustomerConsents
 CREATE TABLE CustomerConsents (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Id INT PRIMARY KEY IDENTITY(1,1),
     CustomerId INT NOT NULL,
     ConsentType NVARCHAR(100) NOT NULL,
     IsGranted BIT NOT NULL,
-    GrantedAt DATETIME,
-    RevokedAt DATETIME,
+    GrantedAt DATETIME2 NULL,
+    RevokedAt DATETIME2 NULL,
     FOREIGN KEY (CustomerId) REFERENCES Customers(Id) ON DELETE CASCADE
 );
 
--- Tabla EmployeeAvailabilities
-CREATE TABLE EmployeeAvailabilities (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    EmployeeId INT NOT NULL,
-    DayOfWeek INT NOT NULL CHECK (DayOfWeek >= 0 AND DayOfWeek <= 6),
-    StartTime TIME NOT NULL,
-    EndTime TIME NOT NULL,
-    IsRecurring BIT DEFAULT 1,
-    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id) ON DELETE CASCADE
+CREATE TABLE ServicePhotos (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    AppointmentId INT NOT NULL,
+    Type NVARCHAR(50) NOT NULL CHECK (Type IN ('before', 'after', 'process')),
+    S3Key NVARCHAR(500) NOT NULL,
+    S3Bucket NVARCHAR(200) NOT NULL,
+    UploadedBy INT NOT NULL,
+    UploadedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    IsPublic BIT NOT NULL DEFAULT 0,
+    ExpiresAt DATETIME2 NOT NULL,
+    FOREIGN KEY (AppointmentId) REFERENCES Appointments(Id) ON DELETE CASCADE,
+    FOREIGN KEY (UploadedBy) REFERENCES Employees(Id)
 );
 
--- Tabla EmployeeExceptions
-CREATE TABLE EmployeeExceptions (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    EmployeeId INT NOT NULL,
-    StartDateTime DATETIME NOT NULL,
-    EndDateTime DATETIME NOT NULL,
-    Reason NVARCHAR(500),
-    Type NVARCHAR(50) NOT NULL,
-    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id) ON DELETE CASCADE
+CREATE TABLE CancellationPolicies (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    MinHoursBeforeCancel INT NOT NULL DEFAULT 24,
+    PenaltyPercentage INT NOT NULL DEFAULT 0 CHECK (PenaltyPercentage BETWEEN 0 AND 100),
+    MaxNoShowsBeforeBlock INT NOT NULL DEFAULT 3,
+    VipMinHoursBeforeCancel INT NULL,
+    VipPenaltyPercentage INT NULL CHECK (VipPenaltyPercentage BETWEEN 0 AND 100),
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    UpdatedAt DATETIME2 NULL
 );
 
--- Tabla EmployeeServices
-CREATE TABLE EmployeeServices (
-    EmployeeId INT NOT NULL,
-    ServiceId INT NOT NULL,
-    ProficiencyLevel INT DEFAULT 1,
-    PRIMARY KEY (EmployeeId, ServiceId),
-    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id) ON DELETE CASCADE,
-    FOREIGN KEY (ServiceId) REFERENCES Services(Id) ON DELETE CASCADE
-);
-
--- Tabla WaitingList
 CREATE TABLE WaitingList (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Id INT PRIMARY KEY IDENTITY(1,1),
     CustomerId INT NOT NULL,
     ServiceId INT NOT NULL,
-    PreferredEmployeeId INT,
-    PreferredDate DATETIME,
-    DateRangeStart DATETIME NOT NULL,
-    DateRangeEnd DATETIME NOT NULL,
-    Priority INT DEFAULT 1000,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    NotifiedAt DATETIME,
+    PreferredEmployeeId INT NULL,
+    PreferredDate DATETIME2 NULL,
+    DateRangeStart DATETIME2 NOT NULL,
+    DateRangeEnd DATETIME2 NOT NULL,
+    Priority INT NOT NULL DEFAULT 1000,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    NotifiedAt DATETIME2 NULL,
     FOREIGN KEY (CustomerId) REFERENCES Customers(Id) ON DELETE CASCADE,
     FOREIGN KEY (ServiceId) REFERENCES Services(Id),
     FOREIGN KEY (PreferredEmployeeId) REFERENCES Employees(Id)
 );
 
--- Tabla ServicePhotos
-CREATE TABLE ServicePhotos (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    AppointmentId INT NOT NULL,
-    Type NVARCHAR(50) NOT NULL,
-    S3Key NVARCHAR(500) NOT NULL,
-    S3Bucket NVARCHAR(200) NOT NULL,
-    UploadedBy INT NOT NULL,
-    UploadedAt DATETIME DEFAULT GETDATE(),
-    IsPublic BIT DEFAULT 0,
-    ExpiresAt DATETIME NOT NULL,
-    FOREIGN KEY (AppointmentId) REFERENCES Appointments(Id) ON DELETE CASCADE,
-    FOREIGN KEY (UploadedBy) REFERENCES Employees(Id)
-);
-
--- Tabla ServicePackages
-CREATE TABLE ServicePackages (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    Name NVARCHAR(200) NOT NULL,
-    Description NVARCHAR(1000),
-    TotalPrice DECIMAL(10,2) NOT NULL,
-    DiscountPercentage DECIMAL(5,2) DEFAULT 0,
-    ImageUrl NVARCHAR(500),
-    IsActive BIT DEFAULT 1,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    UpdatedAt DATETIME
-);
-
--- Tabla ServicePackageItems
-CREATE TABLE ServicePackageItems (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    ServicePackageId INT NOT NULL,
-    ServiceId INT NOT NULL,
-    [Order] INT NOT NULL,
-    FOREIGN KEY (ServicePackageId) REFERENCES ServicePackages(Id) ON DELETE CASCADE,
-    FOREIGN KEY (ServiceId) REFERENCES Services(Id)
-);
-
--- Tabla ServicePromotions
-CREATE TABLE ServicePromotions (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    ServiceId INT,
-    ServicePackageId INT,
-    Name NVARCHAR(200) NOT NULL,
-    Description NVARCHAR(1000),
-    DiscountPercentage DECIMAL(5,2) NOT NULL,
-    DiscountAmount DECIMAL(10,2),
-    StartDate DATETIME NOT NULL,
-    EndDate DATETIME NOT NULL,
-    IsSeasonalService BIT DEFAULT 0,
-    IsActive BIT DEFAULT 1,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (ServiceId) REFERENCES Services(Id),
-    FOREIGN KEY (ServicePackageId) REFERENCES ServicePackages(Id)
-);
-
--- Tablas de Sistema de Recordatorios
-CREATE TABLE MessageTemplates (
-    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    Name NVARCHAR(200) NOT NULL,
-    Type NVARCHAR(50) NOT NULL,
-    Subject NVARCHAR(200),
-    Body NVARCHAR(MAX) NOT NULL,
-    Language NVARCHAR(10) DEFAULT 'es'
-);
-
-CREATE TABLE ReminderConfigurations (
-    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    ReminderOrder INT NOT NULL,
-    HoursBeforeAppointment INT NOT NULL,
-    Channel NVARCHAR(50) NOT NULL,
-    IsActive BIT DEFAULT 1,
-    MessageTemplateId UNIQUEIDENTIFIER NOT NULL,
-    AllowedSendStartTime TIME,
-    AllowedSendEndTime TIME,
-    FOREIGN KEY (MessageTemplateId) REFERENCES MessageTemplates(Id)
-);
-
-CREATE TABLE ReminderLogs (
-    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
-    AppointmentId INT NOT NULL,
-    ReminderConfigurationId UNIQUEIDENTIFIER NOT NULL,
-    Channel NVARCHAR(50) NOT NULL,
-    SentAt DATETIME NOT NULL,
-    Status NVARCHAR(50) NOT NULL,
-    ExternalMessageId NVARCHAR(200),
-    ErrorMessage NVARCHAR(MAX),
-    FOREIGN KEY (AppointmentId) REFERENCES Appointments(Id) ON DELETE CASCADE,
-    FOREIGN KEY (ReminderConfigurationId) REFERENCES ReminderConfigurations(Id)
-);
-
-CREATE TABLE ConfirmationTokens (
-    Token NVARCHAR(100) PRIMARY KEY,
-    AppointmentId INT NOT NULL,
-    Action NVARCHAR(50) NOT NULL,
-    ExpiresAt DATETIME NOT NULL,
-    UsedAt DATETIME,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (AppointmentId) REFERENCES Appointments(Id) ON DELETE CASCADE
-);
-
--- Tablas de Sistema de Inventario
-CREATE TABLE InventoryMovements (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    ProductId INT NOT NULL,
-    Quantity INT NOT NULL,
-    MovementType NVARCHAR(50) NOT NULL,
-    ReferenceId INT,
-    Notes NVARCHAR(500),
-    CreatedBy INT,
-    CreatedAt DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (ProductId) REFERENCES Products(Id),
-    FOREIGN KEY (CreatedBy) REFERENCES Employees(Id)
-);
-
 CREATE TABLE ProductSales (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    CustomerId INT,
-    AppointmentId INT,
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    CustomerId INT NULL,
+    AppointmentId INT NULL,
     TotalAmount DECIMAL(10,2) NOT NULL,
-    Status NVARCHAR(50) NOT NULL,
-    PaymentMethod NVARCHAR(50),
-    Notes NVARCHAR(500),
-    SoldBy INT,
-    CreatedAt DATETIME DEFAULT GETDATE(),
+    Status NVARCHAR(50) NOT NULL DEFAULT 'Pending' CHECK (Status IN ('Pending', 'Completed', 'Cancelled')),
+    PaymentMethod NVARCHAR(50) NULL,
+    Notes NVARCHAR(MAX) NULL,
+    SoldBy INT NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY (CustomerId) REFERENCES Customers(Id),
     FOREIGN KEY (AppointmentId) REFERENCES Appointments(Id),
     FOREIGN KEY (SoldBy) REFERENCES Employees(Id)
 );
 
 CREATE TABLE ProductSaleItems (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Id INT PRIMARY KEY IDENTITY(1,1),
     SaleId INT NOT NULL,
     ProductId INT NOT NULL,
     Quantity INT NOT NULL,
@@ -466,236 +396,123 @@ CREATE TABLE ProductSaleItems (
     FOREIGN KEY (ProductId) REFERENCES Products(Id)
 );
 
-GO
+CREATE TABLE InventoryMovements (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    ProductId INT NOT NULL,
+    Quantity INT NOT NULL,
+    MovementType NVARCHAR(50) NOT NULL CHECK (MovementType IN ('purchase', 'sale', 'adjustment', 'waste', 'return')),
+    ReferenceId INT NULL,
+    Notes NVARCHAR(500) NULL,
+    CreatedBy INT NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    FOREIGN KEY (ProductId) REFERENCES Products(Id),
+    FOREIGN KEY (CreatedBy) REFERENCES Employees(Id)
+);
 
--- ================================
--- INSERTAR DATOS DE EJEMPLO
--- ================================
+CREATE TABLE MessageTemplates (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    Name NVARCHAR(200) NOT NULL,
+    Type NVARCHAR(100) NOT NULL CHECK (Type IN ('email', 'sms', 'whatsapp', 'push')),
+    Subject NVARCHAR(500) NULL,
+    Body NVARCHAR(MAX) NOT NULL,
+    Language NVARCHAR(10) NOT NULL DEFAULT 'es'
+);
 
--- Insertar Categorías de Servicios
-INSERT INTO ServiceCategories (Name, Description, Color, DisplayOrder, IsActive)
-VALUES 
-('Cejas', 'Tratamientos y diseño de cejas', '#FF6B9D', 1, 1),
-('Pestañas', 'Extensiones y tratamientos de pestañas', '#C44569', 2, 1),
-('Faciales', 'Tratamientos faciales y limpieza', '#A8E6CF', 3, 1),
-('Depilación', 'Servicios de depilación', '#FFD93D', 4, 1);
+CREATE TABLE ReminderConfigurations (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    ReminderOrder INT NOT NULL,
+    HoursBeforeAppointment INT NOT NULL,
+    Channel NVARCHAR(50) NOT NULL CHECK (Channel IN ('email', 'sms', 'whatsapp', 'push')),
+    IsActive BIT NOT NULL DEFAULT 1,
+    MessageTemplateId UNIQUEIDENTIFIER NOT NULL,
+    AllowedSendStartTime TIME NULL,
+    AllowedSendEndTime TIME NULL,
+    FOREIGN KEY (MessageTemplateId) REFERENCES MessageTemplates(Id)
+);
 
--- Insertar Usuarios Base
-INSERT INTO Users (FirstName, LastName, Email, Phone, Rol, CreatedAt)
-VALUES 
-('María', 'García López', 'maria.garcia@reservarte.com', '600111222', 'employee', GETDATE()),
-('Laura', 'Martínez Ruiz', 'laura.martinez@reservarte.com', '600333444', 'employee', GETDATE()),
-('Ana', 'López Fernández', 'ana.lopez@email.com', '600555666', 'client', GETDATE()),
-('Carmen', 'Rodríguez Gil', 'carmen.rodriguez@email.com', '600777888', 'client', GETDATE()),
-('Isabel', 'Sánchez Navarro', 'isabel.sanchez@email.com', '600999000', 'client', GETDATE()),
-('Patricia', 'Torres Moreno', 'patricia.torres@email.com', '600111333', 'client', GETDATE()),
-('Lucía', 'Ramírez Castro', 'lucia.ramirez@email.com', '600222444', 'client', GETDATE());
+CREATE TABLE ReminderLogs (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    AppointmentId INT NOT NULL,
+    ReminderConfigurationId UNIQUEIDENTIFIER NOT NULL,
+    Channel NVARCHAR(50) NOT NULL,
+    SentAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    Status NVARCHAR(50) NOT NULL CHECK (Status IN ('pending', 'sent', 'failed', 'delivered', 'read')),
+    ExternalMessageId NVARCHAR(200) NULL,
+    ErrorMessage NVARCHAR(MAX) NULL,
+    FOREIGN KEY (AppointmentId) REFERENCES Appointments(Id) ON DELETE CASCADE,
+    FOREIGN KEY (ReminderConfigurationId) REFERENCES ReminderConfigurations(Id)
+);
 
--- Insertar Empleados
-INSERT INTO Employees (Id, HireDate, IsActive)
-VALUES 
-(1, '2023-01-15', 1),
-(2, '2023-06-01', 1);
+CREATE TABLE ConfirmationTokens (
+    Token NVARCHAR(200) PRIMARY KEY,
+    AppointmentId INT NOT NULL,
+    Action NVARCHAR(50) NOT NULL CHECK (Action IN ('confirm', 'cancel')),
+    ExpiresAt DATETIME2 NOT NULL,
+    UsedAt DATETIME2 NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    FOREIGN KEY (AppointmentId) REFERENCES Appointments(Id) ON DELETE CASCADE
+);
 
--- Insertar Clientes
-INSERT INTO Customers (Id, BirthDate, Category, LoyaltyPoints, PreferredContactMethod, MarketingConsent)
-VALUES 
-(3, '1990-05-15', 'VIP', 150, 'email', 1),
-(4, '1995-08-22', 'regular', 50, 'phone', 1),
-(5, '1988-03-10', 'regular', 75, 'email', 0),
-(6, '1992-11-30', 'premium', 120, 'email', 1),
-(7, '1998-07-18', 'regular', 25, 'phone', 1);
+PRINT 'Base de datos ReservArteDB inicializada correctamente';
 
--- Insertar Servicios
-INSERT INTO Services (Name, Description, DurationMinutes, BasePrice, CategoryId, IsActive, RequiresAllergyTest)
-VALUES 
-('Diseño de Cejas', 'Diseño y depilación de cejas personalizadas', 30, 15.00, 1, 1, 0),
-('Microblading', 'Micropigmentación de cejas técnica pelo a pelo', 120, 250.00, 1, 1, 1),
-('Laminado de Cejas', 'Tratamiento para cejas más definidas y pobladas', 45, 35.00, 1, 1, 0),
-('Extensiones de Pestañas Clásicas', 'Extensiones de pestañas pelo a pelo', 90, 45.00, 2, 1, 1),
-('Extensiones de Pestañas Volumen', 'Extensiones con efecto volumen 3D-6D', 120, 65.00, 2, 1, 1),
-('Lifting de Pestañas', 'Tratamiento para rizar y definir pestañas naturales', 60, 40.00, 2, 1, 0),
-('Limpieza Facial Profunda', 'Limpieza facial completa con extracción', 60, 50.00, 3, 1, 0),
-('Hidratación Facial', 'Tratamiento hidratante con mascarilla', 45, 40.00, 3, 1, 0),
-('Depilación Cejas', 'Depilación y diseño básico de cejas', 15, 8.00, 4, 1, 0),
-('Depilación Labio Superior', 'Depilación de labio superior', 10, 6.00, 4, 1, 0);
+-- ============================================
+-- DATOS INICIALES
+-- ============================================
 
--- Insertar Variaciones de Servicios
-INSERT INTO ServiceVariations (ServiceId, Name, PriceModifier, DurationModifier, IsActive)
-VALUES 
-(4, 'Relleno extensiones clásicas', 15.00, 30, 1),
-(5, 'Relleno extensiones volumen', 25.00, 45, 1),
-(2, 'Retoque microblading (6 meses)', -100.00, -30, 1);
+-- USUARIOS (para autenticación)
+INSERT INTO Users (FirstName, LastName, Email, Password, Rol, Phone) VALUES
+('Guillermo', 'Admin', 'guille@svalero.com', '1234', 'admin', '+34600000001'),
+('María', 'García', 'maria.garcia@reservarte.com', 'Maria123!', 'employee', '+34600000002'),
+('Laura', 'Martínez', 'laura.martinez@reservarte.com', 'Laura123!', 'employee', '+34600000003'),
+('Ana', 'López', 'ana.lopez@email.com', 'Cliente123!', 'client', '+34600000004'),
+('Carmen', 'Rodríguez', 'carmen.rodriguez@email.com', 'Cliente123!', 'client', '+34600000005'),
+('Isabel', 'Sánchez', 'isabel.sanchez@email.com', 'Cliente123!', 'client', '+34600000006');
 
--- Insertar Precios por Nivel
-INSERT INTO ServicePricings (ServiceId, EmployeeLevel, Price)
-VALUES 
-(2, 'Junior', 200.00),
-(2, 'Senior', 250.00),
-(2, 'Expert', 300.00),
-(4, 'Junior', 40.00),
-(4, 'Senior', 45.00),
-(4, 'Expert', 55.00);
+-- EMPLOYEES (tabla independiente)
+INSERT INTO Employees (FirstName, LastName, Email, Phone, Rol, HireDate, IsActive) VALUES
+('María', 'García', 'maria.garcia@reservarte.com', '+34600000002', 'employee', '2023-01-15', 1),
+('Laura', 'Martínez', 'laura.martinez@reservarte.com', '+34600000003', 'employee', '2023-03-01', 1);
 
--- Insertar Categorías de Productos
-INSERT INTO ProductCategories (Name, Description, IsActive)
-VALUES 
-('Adhesivos', 'Adhesivos para extensiones de pestañas', 1),
-('Tintes', 'Tintes para cejas y pestañas', 1),
-('Cosméticos', 'Productos cosméticos varios', 1),
-('Herramientas', 'Herramientas y accesorios', 1);
+-- CUSTOMERS (tabla independiente)
+INSERT INTO Customers (FirstName, LastName, Email, Phone, Rol, Category, LoyaltyPoints, PreferredContactMethod, MarketingConsent) VALUES
+('Ana', 'López', 'ana.lopez@email.com', '+34600000004', 'client', 'regular', 0, 'email', 1),
+('Carmen', 'Rodríguez', 'carmen.rodriguez@email.com', '+34600000005', 'client', 'vip', 150, 'whatsapp', 1),
+('Isabel', 'Sánchez', 'isabel.sanchez@email.com', '+34600000006', 'client', 'regular', 50, 'email', 0);
 
--- Insertar Productos
-INSERT INTO Products (Name, Description, Brand, Sku, Price, Stock, MinStockAlert, CategoryId, IsActive)
-VALUES 
-('Adhesivo Premium Black', 'Adhesivo negro de secado rápido', 'LashPro', 'ADH-001', 25.00, 15, 5, 1, 1),
-('Adhesivo Sensitive', 'Adhesivo para pieles sensibles', 'LashPro', 'ADH-002', 28.00, 10, 5, 1, 1),
-('Tinte Cejas Marrón', 'Tinte para cejas tono marrón', 'BrowTint', 'TIN-001', 12.00, 20, 8, 2, 1),
-('Tinte Cejas Negro', 'Tinte para cejas tono negro', 'BrowTint', 'TIN-002', 12.00, 18, 8, 2, 1),
-('Sérum Crecimiento Pestañas', 'Sérum estimulante crecimiento', 'LashGrow', 'SER-001', 35.00, 12, 5, 3, 1),
-('Pinzas Precisión', 'Pinzas de acero inoxidable', 'ProTools', 'TOOL-001', 15.00, 25, 10, 4, 1);
+-- CATEGORÍAS DE SERVICIOS
+INSERT INTO ServiceCategories (Name, Description, Color, DisplayOrder, IsActive) VALUES
+('Corte', 'Servicios de corte de cabello', '#FF6B6B', 1, 1),
+('Color', 'Tintes y coloración', '#4ECDC4', 2, 1),
+('Tratamientos', 'Tratamientos capilares', '#95E1D3', 3, 1);
 
--- Insertar relación Servicios-Productos
-INSERT INTO ServiceProducts (ServiceId, ProductId, QuantityUsed, Notes)
-VALUES 
-(4, 1, 0.5, 'Uso medio por servicio'),
-(5, 1, 0.8, 'Uso alto por servicio'),
-(1, 3, 1.0, 'Un uso por servicio'),
-(2, 3, 1.0, 'Un uso por servicio');
+-- SERVICIOS
+INSERT INTO Services (Name, Description, DurationMinutes, BasePrice, CategoryId, IsActive, RequiresAllergyTest) VALUES
+('Corte Mujer', 'Corte de cabello para mujer', 30, 25.00, 1, 1, 0),
+('Corte Hombre', 'Corte de cabello para hombre', 20, 15.00, 1, 1, 0),
+('Tinte Completo', 'Coloración completa del cabello', 120, 65.00, 2, 1, 1),
+('Mechas', 'Mechas californianas o balayage', 150, 85.00, 2, 1, 1),
+('Tratamiento Keratina', 'Tratamiento alisador de keratina', 180, 120.00, 3, 1, 0),
+('Hidratación Profunda', 'Mascarilla hidratante intensiva', 45, 35.00, 3, 1, 0);
 
--- Insertar Disponibilidad de Empleados
-INSERT INTO EmployeeAvailabilities (EmployeeId, DayOfWeek, StartTime, EndTime, IsRecurring)
-VALUES 
--- María: Lunes a Viernes 9:00-18:00
-(1, 1, '09:00', '18:00', 1),
-(1, 2, '09:00', '18:00', 1),
-(1, 3, '09:00', '18:00', 1),
-(1, 4, '09:00', '18:00', 1),
-(1, 5, '09:00', '18:00', 1),
--- Laura: Martes a Sábado 10:00-19:00
-(2, 2, '10:00', '19:00', 1),
-(2, 3, '10:00', '19:00', 1),
-(2, 4, '10:00', '19:00', 1),
-(2, 5, '10:00', '19:00', 1),
-(2, 6, '10:00', '14:00', 1);
+-- DISPONIBILIDAD EMPLEADOS
+INSERT INTO EmployeeAvailabilities (EmployeeId, DayOfWeek, StartTime, EndTime, IsRecurring) VALUES
+(1, 1, '09:00', '18:00', 1), -- María Lunes
+(1, 2, '09:00', '18:00', 1), -- María Martes
+(1, 3, '09:00', '18:00', 1), -- María Miércoles
+(1, 4, '09:00', '18:00', 1), -- María Jueves
+(1, 5, '09:00', '14:00', 1), -- María Viernes
+(2, 1, '10:00', '19:00', 1), -- Laura Lunes
+(2, 2, '10:00', '19:00', 1), -- Laura Martes
+(2, 3, '10:00', '19:00', 1), -- Laura Miércoles
+(2, 4, '10:00', '19:00', 1), -- Laura Jueves
+(2, 5, '10:00', '15:00', 1); -- Laura Viernes
 
--- Insertar Servicios por Empleado
-INSERT INTO EmployeeServices (EmployeeId, ServiceId, ProficiencyLevel)
-VALUES 
-(1, 1, 3), (1, 2, 3), (1, 3, 2), (1, 4, 3), (1, 5, 2),
-(2, 1, 2), (2, 3, 3), (2, 4, 2), (2, 6, 3), (2, 7, 3), (2, 8, 2);
-
--- Insertar Métodos de Pago de Clientes
-INSERT INTO CustomerPaymentMethods (CustomerId, RedsysToken, CardLast4, CardBrand, CardExpiry, IsDefault)
-VALUES 
-(3, 'TOKEN_12345_VIP', '4567', 'Visa', '2712', 1),
-(4, 'TOKEN_67890_REG', '8901', 'Mastercard', '2611', 1),
-(6, 'TOKEN_11111_PREM', '2345', 'Visa', '2710', 1);
-
--- Insertar Citas
-INSERT INTO Appointments (CustomerId, EmployeeId, AppointmentDate, StartTime, EndTime, Status, TotalPrice, DepositAmount, PaymentMethodId, CreatedAt)
-VALUES 
--- Citas pasadas completadas
-(3, 1, DATEADD(DAY, -30, GETDATE()), '10:00', '11:30', 'completed', 45.00, 0, 1, DATEADD(DAY, -35, GETDATE())),
-(4, 2, DATEADD(DAY, -20, GETDATE()), '11:00', '12:00', 'completed', 40.00, 0, 2, DATEADD(DAY, -25, GETDATE())),
-(3, 1, DATEADD(DAY, -15, GETDATE()), '15:00', '16:00', 'completed', 35.00, 0, 1, DATEADD(DAY, -20, GETDATE())),
--- Citas próximas confirmadas
-(5, 1, DATEADD(DAY, 2, GETDATE()), '10:00', '11:30', 'confirmed', 45.00, 10.00, NULL, DATEADD(DAY, -2, GETDATE())),
-(6, 2, DATEADD(DAY, 3, GETDATE()), '11:00', '12:00', 'confirmed', 50.00, 15.00, 3, DATEADD(DAY, -1, GETDATE())),
-(7, 1, DATEADD(DAY, 5, GETDATE()), '16:00', '17:30', 'pending', 65.00, 0, NULL, GETDATE()),
--- Cita para hoy
-(4, 2, CAST(GETDATE() AS DATE), '14:00', '15:00', 'confirmed', 40.00, 10.00, 2, DATEADD(DAY, -3, GETDATE()));
-
--- Insertar Items de Servicio para Citas
-INSERT INTO AppointmentServiceItems (AppointmentId, ServiceId, ServiceVariationId, Price, DurationMinutes, [Order])
-VALUES 
-(1, 4, NULL, 45.00, 90, 1),
-(2, 6, NULL, 40.00, 60, 1),
-(3, 3, NULL, 35.00, 45, 1),
-(4, 4, NULL, 45.00, 90, 1),
-(5, 7, NULL, 50.00, 60, 1),
-(6, 5, NULL, 65.00, 120, 1),
-(7, 6, NULL, 40.00, 60, 1);
-
--- Insertar Pagos
-INSERT INTO Payments (AppointmentId, CustomerId, Amount, Currency, PaymentMethodType, Status, CustomerPaymentMethodId, ProcessedAt, CreatedAt)
-VALUES 
-(1, 3, 45.00, 'EUR', 'card', 'captured', 1, DATEADD(DAY, -30, GETDATE()), DATEADD(DAY, -30, GETDATE())),
-(2, 4, 40.00, 'EUR', 'card', 'captured', 2, DATEADD(DAY, -20, GETDATE()), DATEADD(DAY, -20, GETDATE())),
-(3, 3, 35.00, 'EUR', 'card', 'captured', 1, DATEADD(DAY, -15, GETDATE()), DATEADD(DAY, -15, GETDATE())),
-(4, 5, 10.00, 'EUR', 'card', 'captured', NULL, DATEADD(DAY, -2, GETDATE()), DATEADD(DAY, -2, GETDATE())),
-(5, 6, 15.00, 'EUR', 'card', 'captured', 3, DATEADD(DAY, -1, GETDATE()), DATEADD(DAY, -1, GETDATE()));
-
--- Insertar Política de Cancelación
-INSERT INTO CancellationPolicies (MinHoursBeforeCancel, PenaltyPercentage, MaxNoShowsBeforeBlock, VipMinHoursBeforeCancel, VipPenaltyPercentage, IsActive)
-VALUES 
+-- POLÍTICA DE CANCELACIÓN
+INSERT INTO CancellationPolicies (MinHoursBeforeCancel, PenaltyPercentage, MaxNoShowsBeforeBlock, VipMinHoursBeforeCancel, VipPenaltyPercentage, IsActive) VALUES
 (24, 50, 3, 12, 25, 1);
 
--- Insertar Notas de Clientes
-INSERT INTO CustomerNotes (CustomerId, EmployeeId, Note)
-VALUES 
-(3, 1, 'Cliente VIP. Prefiere estilo natural para cejas.'),
-(4, 2, 'Piel sensible, usar productos hipoalergénicos.'),
-(6, 1, 'Le gusta el estilo dramático en pestañas.');
+PRINT 'Verificando tablas creadas:';
+SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME;
 
--- Insertar Alergias
-INSERT INTO CustomerAllergies (CustomerId, AllergyDescription, Severity)
-VALUES 
-(4, 'Alergia al níquel', 'moderate'),
-(5, 'Sensibilidad a fragancias', 'mild');
-
--- Insertar Consentimientos
-INSERT INTO CustomerConsents (CustomerId, ConsentType, IsGranted, GrantedAt)
-VALUES 
-(3, 'marketing', 1, GETDATE()),
-(3, 'data_processing', 1, GETDATE()),
-(4, 'marketing', 1, GETDATE()),
-(5, 'data_processing', 1, GETDATE());
-
--- Insertar Paquetes de Servicios
-INSERT INTO ServicePackages (Name, Description, TotalPrice, DiscountPercentage, IsActive)
-VALUES 
-('Paquete Cejas Perfect', 'Diseño + Laminado + Tinte', 55.00, 10, 1),
-('Paquete Look Completo', 'Extensiones pestañas + Diseño cejas', 85.00, 15, 1);
-
--- Insertar Items de Paquetes
-INSERT INTO ServicePackageItems (ServicePackageId, ServiceId, [Order])
-VALUES 
-(1, 1, 1), (1, 3, 2),
-(2, 4, 1), (2, 1, 2);
-
--- Insertar Promociones
-INSERT INTO ServicePromotions (ServiceId, Name, Description, DiscountPercentage, StartDate, EndDate, IsSeasonalService, IsActive)
-VALUES 
-(2, 'Promo Microblading Primavera', 'Descuento especial primavera', 15.00, DATEADD(MONTH, -1, GETDATE()), DATEADD(MONTH, 2, GETDATE()), 1, 1),
-(7, 'Facial Verano', 'Prepara tu piel para el verano', 20.00, GETDATE(), DATEADD(MONTH, 3, GETDATE()), 1, 1);
-
--- Insertar Templates de Mensajes
-INSERT INTO MessageTemplates (Name, Type, Subject, Body, Language)
-VALUES 
-('Recordatorio 24h', 'reminder', 'Recordatorio de tu cita en ReservArte', 
- 'Hola {CustomerName}, te recordamos que tienes una cita mañana a las {StartTime} con {EmployeeName} para {ServiceName}. ¡Te esperamos!', 'es'),
-('Confirmación Cita', 'confirmation', 'Cita confirmada en ReservArte',
- 'Hola {CustomerName}, tu cita para {ServiceName} el {AppointmentDate} a las {StartTime} ha sido confirmada. ¡Nos vemos pronto!', 'es');
-
+PRINT 'Inicialización completada exitosamente';
 GO
-
--- ================================
--- ÍNDICES PARA OPTIMIZACIÓN
--- ================================
-
-CREATE INDEX idx_Appointments_Customer ON Appointments(CustomerId);
-CREATE INDEX idx_Appointments_Employee ON Appointments(EmployeeId);
-CREATE INDEX idx_Appointments_Date ON Appointments(AppointmentDate);
-CREATE INDEX idx_Appointments_Status ON Appointments(Status);
-CREATE INDEX idx_Payments_Customer ON Payments(CustomerId);
-CREATE INDEX idx_Payments_Status ON Payments(Status);
-CREATE INDEX idx_Services_Category ON Services(CategoryId);
-CREATE INDEX idx_Services_Active ON Services(IsActive);
-
-GO
-
-PRINT '========================================';
-PRINT 'Base de datos ReservArteDB creada exitosamente';
-PRINT 'Datos de ejemplo insertados';
-PRINT '========================================';

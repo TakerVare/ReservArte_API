@@ -24,70 +24,70 @@ public class ServicePhotoController : ControllerBase
     /// Sube una fotografía para una cita (antes o después del servicio).
     /// Solo empleados pueden subir fotos.
     /// </summary>
-    [HttpPost("appointments/{appointmentId}/photos")]
-    [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
-    public async Task<ActionResult<ServicePhotoDtoOut>> UploadPhoto(
-        int appointmentId,
-        [FromForm] IFormFile file,
-        [FromForm] string type,
-        [FromForm] bool isPublic = false)
-    {
-        if (file == null || file.Length == 0)
-        {
-            return BadRequest(new { message = "No se ha proporcionado ningún archivo" });
-        }
+    // [HttpPost("appointments/{appointmentId}/photos")]
+    // [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
+    // public async Task<ActionResult<ServicePhotoDtoOut>> UploadPhoto(
+    //     int appointmentId,
+    //     [FromForm] IFormFile file,
+    //     [FromForm] string type,
+    //     [FromForm] bool isPublic = false)
+    // {
+    //     if (file == null || file.Length == 0)
+    //     {
+    //         return BadRequest(new { message = "No se ha proporcionado ningún archivo" });
+    //     }
         
-        // Validar tipo de archivo
-        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
-        if (!allowedTypes.Contains(file.ContentType.ToLowerInvariant()))
-        {
-            return BadRequest(new { message = "Tipo de archivo no permitido. Use JPEG, PNG, GIF o WebP" });
-        }
+    //     // Validar tipo de archivo
+    //     var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+    //     if (!allowedTypes.Contains(file.ContentType.ToLowerInvariant()))
+    //     {
+    //         return BadRequest(new { message = "Tipo de archivo no permitido. Use JPEG, PNG, GIF o WebP" });
+    //     }
         
-        // Validar tamaño (máximo 10MB)
-        if (file.Length > 10 * 1024 * 1024)
-        {
-            return BadRequest(new { message = "El archivo es demasiado grande. Máximo 10MB" });
-        }
+    //     // Validar tamaño (máximo 10MB)
+    //     if (file.Length > 10 * 1024 * 1024)
+    //     {
+    //         return BadRequest(new { message = "El archivo es demasiado grande. Máximo 10MB" });
+    //     }
         
-        // Obtener ID del empleado
-        var employeeIdClaim = User.FindFirst("id")?.Value;
-        if (!int.TryParse(employeeIdClaim, out int employeeId))
-        {
-            return Unauthorized(new { message = "No se pudo identificar al empleado" });
-        }
+    //     // Obtener ID del empleado
+    //     var employeeIdClaim = User.FindFirst("id")?.Value;
+    //     if (!int.TryParse(employeeIdClaim, out int employeeId))
+    //     {
+    //         return Unauthorized(new { message = "No se pudo identificar al empleado" });
+    //     }
         
-        var dto = new ServicePhotoDtoIn
-        {
-            Type = type,
-            IsPublic = isPublic
-        };
+    //     var dto = new ServicePhotoDtoIn
+    //     {
+    //         Type = type,
+    //         IsPublic = isPublic
+    //     };
         
-        try
-        {
-            using var stream = file.OpenReadStream();
-            var photo = await _photoService.UploadPhotoAsync(
-                appointmentId, 
-                stream, 
-                file.FileName, 
-                dto, 
-                employeeId);
+    //     try
+    //     {
+    //         using var stream = file.OpenReadStream();
+    //         var photo = await _photoService.UploadPhotoAsync(
+    //             appointmentId, 
+    //             stream, 
+    //             file.FileName, 
+    //             dto, 
+    //             employeeId);
             
-            return CreatedAtAction(nameof(GetPhoto), new { id = photo.Id }, photo);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return StatusCode(500, new { message = ex.Message });
-        }
-    }
+    //         return CreatedAtAction(nameof(GetPhoto), new { id = photo.Id }, photo);
+    //     }
+    //     catch (KeyNotFoundException ex)
+    //     {
+    //         return NotFound(new { message = ex.Message });
+    //     }
+    //     catch (ArgumentException ex)
+    //     {
+    //         return BadRequest(new { message = ex.Message });
+    //     }
+    //     catch (InvalidOperationException ex)
+    //     {
+    //         return StatusCode(500, new { message = ex.Message });
+    //     }
+    // }
 
     #endregion
 

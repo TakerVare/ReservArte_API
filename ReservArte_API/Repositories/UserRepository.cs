@@ -10,7 +10,7 @@ namespace ReservArte_API.Repositories
 
         public UserRepository(IConfiguration configuration)
         {
-            _connectionString = configuration.GetConnectionString("RestauranteDB") ?? "Not found";;
+            _connectionString = configuration.GetConnectionString("ReservArteDB") ?? "Not found";;
         }
         public void Add(UserDtoIn user) {
             throw new NotImplementedException("Not implemented yet");
