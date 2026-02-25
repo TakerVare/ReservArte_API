@@ -22,13 +22,15 @@ namespace ReservArte_API.Services
             _repository = repository;
         }
 
-        public string Login(LoginDtoIn loginDtoIn) {
-            var user = _repository.GetUserFromCredentials(loginDtoIn);
+        public async Task<string> LoginAsync(LoginDtoIn loginDtoIn)
+        {
+            var user = await _repository.GetUserFromCredentialsAsync(loginDtoIn);
             return GenerateToken(user);
         }
 
-        public string Register(UserDtoIn userDtoIn) {
-            var user = _repository.AddUserFromCredentials(userDtoIn);
+        public async Task<string> RegisterAsync(UserDtoIn userDtoIn)
+        {
+            var user = await _repository.AddUserFromCredentialsAsync(userDtoIn);
             return GenerateToken(user);
         }
 

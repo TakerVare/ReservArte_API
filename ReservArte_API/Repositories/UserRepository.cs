@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using ReservArte_API.Models;
 using ReservArte_API.Models.DTOs;
 using ReservArte_API.Repositories.Interfaces;
@@ -31,26 +32,52 @@ namespace ReservArte_API.Repositories
             throw new NotImplementedException("Not implemented yet");
         }
 
-        public UserDtoOut AddUserFromCredentials(UserDtoIn userDtoIn) {
-            var userId = 2; //fake userID 
-            var user = new UserDtoOut { UserId = userId, UserName = userDtoIn.UserName, Email = userDtoIn.Email, Role = Roles.Admin};
+        public Task<UserDtoOut> AddUserFromCredentialsAsync(UserDtoIn userDtoIn)
+        {
+            var userId = 2; //fake userID
+            var user = new UserDtoOut { UserId = userId, UserName = userDtoIn.UserName, Email = userDtoIn.Email, Role = Roles.Admin };
             if (user == null)
             {
-                //Simulating register failed
                 throw new KeyNotFoundException("User not created.");
             }
-            return user;
+            return Task.FromResult(user);
         }
-        
-        public UserDtoOut GetUserFromCredentials(LoginDtoIn loginDtoIn) {
-            if ((loginDtoIn.Email != "guille@svalero.com") && (loginDtoIn.Password != "1234"))
+
+        public async Task<UserDtoOut> GetUserFromCredentialsAsync(LoginDtoIn loginDtoIn)
+        {
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var query = "SELECT Id, FirstName, LastName, Email, Password, Rol FROM Users WHERE Email = @Email";
+            await using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Email", loginDtoIn.Email);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
             {
-                //Simulating login failed
-                throw new KeyNotFoundException("User not found.");
-            } else {
-                var user = new UserDtoOut { UserId = 1, UserName = "agimenez", Email = "agimenezg@svalero.com", Role = Roles.Admin};
-                return user;
+                throw new KeyNotFoundException("Email o contraseña incorrectos.");
             }
+
+            var userId = reader.GetInt32(0);
+            var firstName = reader.GetString(1);
+            var lastName = reader.GetString(2);
+            var email = reader.GetString(3);
+            var storedPassword = reader.GetString(4);
+            var rol = reader.GetString(5);
+
+            if (storedPassword != loginDtoIn.Password)
+            {
+                throw new KeyNotFoundException("Email o contraseña incorrectos.");
+            }
+
+            var userName = $"{firstName} {lastName}".Trim();
+            return new UserDtoOut
+            {
+                UserId = userId,
+                UserName = userName,
+                Email = email,
+                Role = rol
+            };
         }
         
     }   

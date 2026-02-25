@@ -19,13 +19,13 @@ namespace ReservArte_API.Controllers
         }
 
         [HttpPost("Login")]
-        public IActionResult Login(LoginDtoIn loginDtoIn)
+        public async Task<IActionResult> Login(LoginDtoIn loginDtoIn)
         {
             try
             {
-                if (!ModelState.IsValid)  {return BadRequest(ModelState); } 
+                if (!ModelState.IsValid) { return BadRequest(ModelState); }
 
-                var token = _authService.Login(loginDtoIn);
+                var token = await _authService.LoginAsync(loginDtoIn);
                 return Ok(token);
             }
             catch (KeyNotFoundException ex)
@@ -34,43 +34,40 @@ namespace ReservArte_API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest
-                ("Error generating the token: " + ex.Message);
+                return BadRequest("Error generating the token: " + ex.Message);
             }
         }
 
         [HttpPost("Register")]
-        public IActionResult Register(UserDtoIn userDtoIn)
+        public async Task<IActionResult> Register(UserDtoIn userDtoIn)
         {
             try
             {
-                if (!ModelState.IsValid)  {return BadRequest(ModelState); } 
+                if (!ModelState.IsValid) { return BadRequest(ModelState); }
 
-                var token = _authService.Register(userDtoIn);
+                var token = await _authService.RegisterAsync(userDtoIn);
                 return Ok(token);
             }
             catch (Exception ex)
             {
-                return BadRequest
-                ("Error generating the token: " + ex.Message);
+                return BadRequest("Error generating the token: " + ex.Message);
             }
         }
 
         [HttpPost("CreateUser")]
         [Authorize(Roles = Roles.Admin)]
-        public IActionResult CreateUser(UserDtoIn userDtoIn)
+        public async Task<IActionResult> CreateUser(UserDtoIn userDtoIn)
         {
             try
             {
-                if (!ModelState.IsValid)  {return BadRequest(ModelState); } 
+                if (!ModelState.IsValid) { return BadRequest(ModelState); }
 
-                var token = _authService.Register(userDtoIn);
+                var token = await _authService.RegisterAsync(userDtoIn);
                 return Ok(token);
             }
             catch (Exception ex)
             {
-                return BadRequest
-                ("Error generating the token: " + ex.Message);
+                return BadRequest("Error generating the token: " + ex.Message);
             }
         }
 

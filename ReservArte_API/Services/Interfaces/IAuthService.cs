@@ -6,8 +6,8 @@ namespace ReservArte_API.Services.Interfaces
 {
     public interface IAuthService 
     {
-        public string Login(LoginDtoIn userDtoIn);
-        public string Register(UserDtoIn userDtoIn);
+        public Task<string> LoginAsync(LoginDtoIn userDtoIn);
+        public Task<string> RegisterAsync(UserDtoIn userDtoIn);
         public string GenerateToken(UserDtoOut userDtoOut);
         public bool HasAccessToResource(int requestedUserID, ClaimsPrincipal user);
 

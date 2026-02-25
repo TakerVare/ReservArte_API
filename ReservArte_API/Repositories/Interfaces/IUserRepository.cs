@@ -10,7 +10,7 @@ namespace ReservArte_API.Repositories
         public UserDtoOut Get(int id);
         public void Update(UserDtoIn user);
         public void Delete(int id); 
-        public UserDtoOut AddUserFromCredentials(UserDtoIn userDtoIn);
-        public UserDtoOut GetUserFromCredentials(LoginDtoIn loginDtoIn);
+        public Task<UserDtoOut> AddUserFromCredentialsAsync(UserDtoIn userDtoIn);
+        public Task<UserDtoOut> GetUserFromCredentialsAsync(LoginDtoIn loginDtoIn);
     }
 }
