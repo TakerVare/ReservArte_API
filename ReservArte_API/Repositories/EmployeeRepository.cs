@@ -419,7 +419,7 @@ public class EmployeeRepository : IEmployeeRepository
         {
             await connection.OpenAsync();
             var query = @"SELECT es.EmployeeId, es.ServiceId, es.ProficiencyLevel, 
-                                s.Name, s.Price, s.DurationMinutes
+                                s.Name, s.BasePrice, s.DurationMinutes
                          FROM EmployeeServices es
                          INNER JOIN Services s ON es.ServiceId = s.Id
                          WHERE es.EmployeeId = @EmployeeId";
