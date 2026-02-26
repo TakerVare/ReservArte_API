@@ -9,6 +9,8 @@ using ReservArte_API.Repositories;
 using ReservArte_API.Services.Interfaces;
 using ReservArte_API.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using System.Text.Json.Serialization;
+using ReservArte_API.Converters;
 
 
 
@@ -125,7 +127,11 @@ builder.Services.AddAuthorizationBuilder()
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(opt =>
+    {
+        opt.JsonSerializerOptions.Converters.Insert(0, new TimeOnlyJsonConverter());
+    });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opt =>
