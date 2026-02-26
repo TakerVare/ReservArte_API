@@ -19,7 +19,7 @@ namespace ReservArte_API.Services.Interfaces
         // Consultas de agenda
         Task<AgendaResponseDto> GetAgendaAsync(AgendaQueryDto query);
         Task<AvailableSlotsResponseDto> GetAvailableSlotsAsync(AvailableSlotsRequestDto request);
-        Task<IEnumerable<AgendaAppointmentDto>> GetByCustomerIdAsync(int customerId);
+        Task<IEnumerable<AgendaAppointmentDto>> GetByCustomerIdAsync(int customerId, CustomerAppointmentsQueryDto? filter = null);
         Task<IEnumerable<AgendaAppointmentDto>> GetByEmployeeIdAsync(int employeeId, DateOnly startDate, DateOnly endDate);
         
         // Gestión de estados

@@ -141,12 +141,14 @@ public class AppointmentController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene las citas de un cliente
+    /// Obtiene las citas de un cliente. Filtros opcionales vía query: startDate, endDate, status, employeeId, servicesDescription.
     /// </summary>
     [HttpGet("customer/{customerId}")]
-    public async Task<ActionResult<IEnumerable<AgendaAppointmentDto>>> GetByCustomer(int customerId)
+    public async Task<ActionResult<IEnumerable<AgendaAppointmentDto>>> GetByCustomer(
+        int customerId,
+        [FromQuery] CustomerAppointmentsQueryDto? query = null)
     {
-        var appointments = await _appointmentService.GetByCustomerIdAsync(customerId);
+        var appointments = await _appointmentService.GetByCustomerIdAsync(customerId, query);
         return Ok(appointments);
     }
 

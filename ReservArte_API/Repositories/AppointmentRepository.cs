@@ -334,10 +334,11 @@ public class AppointmentRepository : IAppointmentRepository
         foreach (var apt in appointments)
         {
             apt.ServicesDescription = await GetServicesDescriptionAsync(apt.Id);
+            apt.ServiceIds = await GetServiceIdsAsync(apt.Id);
             apt.DurationMinutes = (int)(apt.EndTime - apt.StartTime).TotalMinutes;
             apt.ColorCode = GetColorCodeForAppointment(apt.Status, apt.IsVip);
         }
-        
+
         return appointments;
     }
 
@@ -375,47 +376,75 @@ public class AppointmentRepository : IAppointmentRepository
         foreach (var apt in appointments)
         {
             apt.ServicesDescription = await GetServicesDescriptionAsync(apt.Id);
+            apt.ServiceIds = await GetServiceIdsAsync(apt.Id);
             apt.DurationMinutes = (int)(apt.EndTime - apt.StartTime).TotalMinutes;
             apt.ColorCode = GetColorCodeForAppointment(apt.Status, apt.IsVip);
         }
-        
+
         return appointments;
     }
 
-    public async Task<IEnumerable<AgendaAppointmentDto>> GetByCustomerAsync(int customerId)
+    public async Task<IEnumerable<AgendaAppointmentDto>> GetByCustomerAsync(int customerId, CustomerAppointmentsQueryDto? filter = null)
     {
         var appointments = new List<AgendaAppointmentDto>();
-        
+        var conditions = new List<string> { "a.CustomerId = @CustomerId" };
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        
-        var query = @"SELECT a.Id, a.AppointmentDate, a.StartTime, a.EndTime,
+
+        if (filter?.StartDate.HasValue == true)
+            conditions.Add("a.AppointmentDate >= @StartDate");
+        if (filter?.EndDate.HasValue == true)
+            conditions.Add("a.AppointmentDate <= @EndDate");
+        if (!string.IsNullOrWhiteSpace(filter?.Status))
+            conditions.Add("a.Status = @Status");
+        if (filter?.EmployeeId.HasValue == true)
+            conditions.Add("a.EmployeeId = @EmployeeId");
+
+        var whereClause = string.Join(" AND ", conditions);
+        var query = $@"SELECT a.Id, a.AppointmentDate, a.StartTime, a.EndTime,
                      a.CustomerId, c.FirstName + ' ' + c.LastName as CustomerName, c.Category as CustomerCategory,
                      a.EmployeeId, e.FirstName + ' ' + e.LastName as EmployeeName,
                      a.Status, a.TotalPrice, a.Notes
                      FROM Appointments a
                      INNER JOIN Customers c ON a.CustomerId = c.Id
                      INNER JOIN Employees e ON a.EmployeeId = e.Id
-                     WHERE a.CustomerId = @CustomerId
+                     WHERE {whereClause}
                      ORDER BY a.AppointmentDate DESC, a.StartTime";
-        
+
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@CustomerId", customerId);
-        
+        if (filter?.StartDate.HasValue == true)
+            command.Parameters.AddWithValue("@StartDate", filter.StartDate!.Value.ToDateTime(TimeOnly.MinValue));
+        if (filter?.EndDate.HasValue == true)
+            command.Parameters.AddWithValue("@EndDate", filter.EndDate!.Value.ToDateTime(TimeOnly.MaxValue));
+        if (!string.IsNullOrWhiteSpace(filter?.Status))
+            command.Parameters.AddWithValue("@Status", filter.Status!);
+        if (filter?.EmployeeId.HasValue == true)
+            command.Parameters.AddWithValue("@EmployeeId", filter.EmployeeId!.Value);
+
         using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             var appointment = MapAgendaAppointmentFromReader(reader);
             appointments.Add(appointment);
         }
-        
+
         foreach (var apt in appointments)
         {
             apt.ServicesDescription = await GetServicesDescriptionAsync(apt.Id);
+            apt.ServiceIds = await GetServiceIdsAsync(apt.Id);
             apt.DurationMinutes = (int)(apt.EndTime - apt.StartTime).TotalMinutes;
             apt.ColorCode = GetColorCodeForAppointment(apt.Status, apt.IsVip);
         }
-        
+
+        if (!string.IsNullOrWhiteSpace(filter?.ServicesDescription))
+        {
+            var search = filter.ServicesDescription.Trim();
+            appointments = appointments
+                .Where(apt => apt.ServicesDescription.Contains(search, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
         return appointments;
     }
 
@@ -692,6 +721,21 @@ public class AppointmentRepository : IAppointmentRepository
         return string.Join(", ", services);
     }
 
+    private async Task<List<int>> GetServiceIdsAsync(int appointmentId)
+    {
+        using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+        var query = @"SELECT asi.ServiceId FROM AppointmentServiceItems asi
+                      WHERE asi.AppointmentId = @AppointmentId ORDER BY asi.[Order]";
+        using var command = new SqlCommand(query, connection);
+        command.Parameters.AddWithValue("@AppointmentId", appointmentId);
+        var ids = new List<int>();
+        using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+            ids.Add(reader.GetInt32(0));
+        return ids;
+    }
+
     #endregion
 
     #region Usuarios Relacionados (Compatibilidad)
@@ -820,6 +864,7 @@ public class AppointmentRepository : IAppointmentRepository
         return new AgendaAppointmentDto
         {
             Id = reader.GetInt32(reader.GetOrdinal("Id")),
+            AppointmentDate = DateOnly.FromDateTime(reader.GetDateTime(reader.GetOrdinal("AppointmentDate"))),
             StartTime = TimeOnly.FromTimeSpan(reader.GetTimeSpan(reader.GetOrdinal("StartTime"))),
             EndTime = TimeOnly.FromTimeSpan(reader.GetTimeSpan(reader.GetOrdinal("EndTime"))),
             CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),

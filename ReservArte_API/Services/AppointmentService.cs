@@ -263,9 +263,9 @@ public class AppointmentService : IAppointmentService
         return response;
     }
 
-    public async Task<IEnumerable<AgendaAppointmentDto>> GetByCustomerIdAsync(int customerId)
+    public async Task<IEnumerable<AgendaAppointmentDto>> GetByCustomerIdAsync(int customerId, CustomerAppointmentsQueryDto? filter = null)
     {
-        return await _appointmentRepository.GetByCustomerAsync(customerId);
+        return await _appointmentRepository.GetByCustomerAsync(customerId, filter);
     }
 
     public async Task<IEnumerable<AgendaAppointmentDto>> GetByEmployeeIdAsync(int employeeId, DateOnly startDate, DateOnly endDate)

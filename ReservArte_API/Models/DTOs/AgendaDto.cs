@@ -38,6 +38,23 @@ using System.ComponentModel.DataAnnotations;
 namespace ReservArte_API.Models.DTOs;
 
 /// <summary>
+/// DTO para filtrar citas por cliente (query params opcionales en GET /api/Appointment/customer/{customerId})
+/// </summary>
+public class CustomerAppointmentsQueryDto
+{
+    /// <summary>Fecha de inicio del rango (opcional)</summary>
+    public DateOnly? StartDate { get; set; }
+    /// <summary>Fecha de fin del rango (opcional)</summary>
+    public DateOnly? EndDate { get; set; }
+    /// <summary>Estado de la cita: pending, confirmed, completed, cancelled, etc. (opcional)</summary>
+    public string? Status { get; set; }
+    /// <summary>Filtrar por empleado (opcional)</summary>
+    public int? EmployeeId { get; set; }
+    /// <summary>Texto a buscar en la descripción de servicios (opcional)</summary>
+    public string? ServicesDescription { get; set; }
+}
+
+/// <summary>
 /// DTO para consultar la agenda con filtros
 /// </summary>
 public class AgendaQueryDto
@@ -115,6 +132,8 @@ public class AgendaDayViewDto
 public class AgendaAppointmentDto
 {
     public int Id { get; set; }
+    /// <summary>Fecha del día de la cita</summary>
+    public DateOnly AppointmentDate { get; set; }
     public TimeOnly StartTime { get; set; }
     public TimeOnly EndTime { get; set; }
     
@@ -133,6 +152,10 @@ public class AgendaAppointmentDto
     /// Nombre de los servicios concatenados
     /// </summary>
     public string ServicesDescription { get; set; } = string.Empty;
+    /// <summary>
+    /// IDs de los servicios de la cita (orden de AppointmentServiceItems)
+    /// </summary>
+    public List<int> ServiceIds { get; set; } = new();
     
     /// <summary>
     /// Duración total en minutos
