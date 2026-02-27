@@ -215,15 +215,7 @@ public class AppointmentRepository : IAppointmentRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        // Primero eliminar servicios asociados
-        var deleteServicesQuery = "DELETE FROM AppointmentServiceItems WHERE AppointmentId = @Id";
-        using (var deleteServicesCmd = new SqlCommand(deleteServicesQuery, connection))
-        {
-            deleteServicesCmd.Parameters.AddWithValue("@Id", id);
-            await deleteServicesCmd.ExecuteNonQueryAsync();
-        }
-        
-        var query = "DELETE FROM Appointments WHERE Id = @Id";
+        var query = "UPDATE Appointments SET IsActive = 0 WHERE Id = @Id";
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);
         

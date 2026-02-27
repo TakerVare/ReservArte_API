@@ -35,6 +35,8 @@ public class WaitingList
     /// </summary>
     public int Priority { get; set; }
     
+    /// <summary>Soft delete: false cuando el registro está "eliminado".</summary>
+    public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     /// <summary>

@@ -194,7 +194,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = "DELETE FROM Services WHERE Id = @Id";
+            var query = "UPDATE Services SET IsActive = 0 WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -345,7 +345,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = "DELETE FROM ServiceCategories WHERE Id = @Id";
+            var query = "UPDATE ServiceCategories SET IsActive = 0 WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -496,7 +496,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = "DELETE FROM ServiceVariations WHERE Id = @Id";
+            var query = "UPDATE ServiceVariations SET IsActive = 0 WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -520,7 +520,7 @@ public class ServiceRepository : IServiceRepository
         {
             await connection.OpenAsync();
             var query = @"SELECT Id, ServiceId, EmployeeLevel, Price, CreatedAt
-                         FROM ServicePricings WHERE ServiceId = @ServiceId
+                         FROM ServicePricings WHERE ServiceId = @ServiceId AND IsActive = 1
                          ORDER BY CASE EmployeeLevel 
                                     WHEN 'Junior' THEN 1 
                                     WHEN 'Senior' THEN 2 
@@ -559,7 +559,7 @@ public class ServiceRepository : IServiceRepository
 
             // Check if pricing already exists for this service and level
             var checkQuery = @"SELECT Id FROM ServicePricings 
-                              WHERE ServiceId = @ServiceId AND EmployeeLevel = @EmployeeLevel";
+                              WHERE ServiceId = @ServiceId AND EmployeeLevel = @EmployeeLevel AND IsActive = 1";
 
             int? existingId = null;
             using (var checkCommand = new SqlCommand(checkQuery, connection))
@@ -591,8 +591,8 @@ public class ServiceRepository : IServiceRepository
             else
             {
                 // Insert new
-                var insertQuery = @"INSERT INTO ServicePricings (ServiceId, EmployeeLevel, Price, CreatedAt)
-                                   VALUES (@ServiceId, @EmployeeLevel, @Price, @CreatedAt);
+                var insertQuery = @"INSERT INTO ServicePricings (ServiceId, EmployeeLevel, Price, IsActive, CreatedAt)
+                                   VALUES (@ServiceId, @EmployeeLevel, @Price, 1, @CreatedAt);
                                    SELECT CAST(SCOPE_IDENTITY() as int)";
 
                 using (var insertCommand = new SqlCommand(insertQuery, connection))
@@ -616,7 +616,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = "DELETE FROM ServicePricings WHERE Id = @Id";
+            var query = "UPDATE ServicePricings SET IsActive = 0 WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -767,7 +767,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = "DELETE FROM Products WHERE Id = @Id";
+            var query = "UPDATE Products SET IsActive = 0 WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -794,7 +794,7 @@ public class ServiceRepository : IServiceRepository
                                 p.Name as ProductName, p.Brand as ProductBrand
                          FROM ServiceProducts sp
                          INNER JOIN Products p ON sp.ProductId = p.Id
-                         WHERE sp.ServiceId = @ServiceId
+                         WHERE sp.ServiceId = @ServiceId AND sp.IsActive = 1
                          ORDER BY p.Name";
 
             using (var command = new SqlCommand(query, connection))
@@ -828,8 +828,8 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"INSERT INTO ServiceProducts (ServiceId, ProductId, QuantityUsed, Notes)
-                         VALUES (@ServiceId, @ProductId, @QuantityUsed, @Notes);
+            var query = @"INSERT INTO ServiceProducts (ServiceId, ProductId, QuantityUsed, Notes, IsActive)
+                         VALUES (@ServiceId, @ProductId, @QuantityUsed, @Notes, 1);
                          SELECT CAST(SCOPE_IDENTITY() as int)";
 
             using (var command = new SqlCommand(query, connection))
@@ -852,7 +852,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = "DELETE FROM ServiceProducts WHERE Id = @Id";
+            var query = "UPDATE ServiceProducts SET IsActive = 0 WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -1030,7 +1030,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = "DELETE FROM ServicePackages WHERE Id = @Id";
+            var query = "UPDATE ServicePackages SET IsActive = 0 WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -1091,8 +1091,8 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"INSERT INTO ServicePackageItems (ServicePackageId, ServiceId, [Order])
-                         VALUES (@ServicePackageId, @ServiceId, @Order);
+            var query = @"INSERT INTO ServicePackageItems (ServicePackageId, ServiceId, [Order], IsActive)
+                         VALUES (@ServicePackageId, @ServiceId, @Order, 1);
                          SELECT CAST(SCOPE_IDENTITY() as int)";
 
             using (var command = new SqlCommand(query, connection))
@@ -1138,7 +1138,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = "DELETE FROM ServicePackageItems WHERE Id = @Id";
+            var query = "UPDATE ServicePackageItems SET IsActive = 0 WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -1343,7 +1343,7 @@ public class ServiceRepository : IServiceRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = "DELETE FROM ServicePromotions WHERE Id = @Id";
+            var query = "UPDATE ServicePromotions SET IsActive = 0 WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
             {

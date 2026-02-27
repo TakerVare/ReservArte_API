@@ -25,7 +25,7 @@ public class CustomerRepository : ICustomerRepository
         {
             await connection.OpenAsync();
             var query = @"SELECT Id, FirstName, LastName, Email, Phone, Category, LoyaltyPoints, IsBlocked, CreatedAt 
-                         FROM Customers WHERE Rol = @Rol
+                         FROM Customers WHERE Rol = @Rol AND IsActive = 1
                          ORDER BY CreatedAt DESC";
 
             using (var command = new SqlCommand(query, connection))
@@ -64,8 +64,8 @@ public class CustomerRepository : ICustomerRepository
             await connection.OpenAsync();
             var query = @"SELECT c.Id, c.FirstName, c.LastName, c.Email, c.Phone, c.Rol, c.ProfileImageUrl,
                                 c.BirthDate, c.Category, c.LoyaltyPoints, c.IsBlocked, 
-                                c.BlockedReason, c.PreferredContactMethod, c.MarketingConsent, c.CreatedAt
-                         FROM Customers c WHERE c.Id = @Id";
+                                c.BlockedReason, c.PreferredContactMethod, c.MarketingConsent, c.IsActive, c.CreatedAt
+                         FROM Customers c WHERE c.Id = @Id AND c.IsActive = 1";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -91,7 +91,8 @@ public class CustomerRepository : ICustomerRepository
                             BlockedReason = reader.IsDBNull(11) ? null : reader.GetString(11),
                             PreferredContactMethod = reader.GetString(12),
                             MarketingConsent = reader.GetBoolean(13),
-                            CreatedAt = reader.GetDateTime(14)
+                            IsActive = reader.GetBoolean(14),
+                            CreatedAt = reader.GetDateTime(15)
                         };
                     }
                 }
@@ -108,8 +109,8 @@ public class CustomerRepository : ICustomerRepository
             await connection.OpenAsync();
             var query = @"SELECT c.Id, c.FirstName, c.LastName, c.Email, c.Phone, c.Rol, c.ProfileImageUrl,
                                 c.BirthDate, c.Category, c.LoyaltyPoints, c.IsBlocked, 
-                                c.BlockedReason, c.PreferredContactMethod, c.MarketingConsent, c.CreatedAt
-                         FROM Customers c WHERE c.Email = @Email AND c.Rol = @Rol";
+                                c.BlockedReason, c.PreferredContactMethod, c.MarketingConsent, c.IsActive, c.CreatedAt
+                         FROM Customers c WHERE c.Email = @Email AND c.Rol = @Rol AND c.IsActive = 1";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -136,7 +137,8 @@ public class CustomerRepository : ICustomerRepository
                             BlockedReason = reader.IsDBNull(11) ? null : reader.GetString(11),
                             PreferredContactMethod = reader.GetString(12),
                             MarketingConsent = reader.GetBoolean(13),
-                            CreatedAt = reader.GetDateTime(14)
+                            IsActive = reader.GetBoolean(14),
+                            CreatedAt = reader.GetDateTime(15)
                         };
                     }
                 }
@@ -153,10 +155,10 @@ public class CustomerRepository : ICustomerRepository
             await connection.OpenAsync();
             var query = @"INSERT INTO Customers (FirstName, LastName, Email, Phone, Rol, ProfileImageUrl,
                                 BirthDate, Category, LoyaltyPoints, IsBlocked, BlockedReason,
-                                PreferredContactMethod, MarketingConsent, CreatedAt)
+                                PreferredContactMethod, MarketingConsent, IsActive, CreatedAt)
                          VALUES (@FirstName, @LastName, @Email, @Phone, @Rol, @ProfileImageUrl,
                                 @BirthDate, @Category, @LoyaltyPoints, @IsBlocked, @BlockedReason,
-                                @PreferredContactMethod, @MarketingConsent, @CreatedAt);
+                                @PreferredContactMethod, @MarketingConsent, 1, @CreatedAt);
                          SELECT CAST(SCOPE_IDENTITY() as int)";
 
             using (var command = new SqlCommand(query, connection))
@@ -230,7 +232,7 @@ public class CustomerRepository : ICustomerRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = "DELETE FROM Customers WHERE Id = @Id";
+            var query = "UPDATE Customers SET IsActive = 0 WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -257,7 +259,7 @@ public class CustomerRepository : ICustomerRepository
                                 CONCAT(e.FirstName, ' ', e.LastName) as EmployeeName
                          FROM CustomerNotes cn
                          LEFT JOIN Employees e ON cn.EmployeeId = e.Id
-                         WHERE cn.CustomerId = @CustomerId
+                         WHERE cn.CustomerId = @CustomerId AND cn.IsActive = 1
                          ORDER BY cn.CreatedAt DESC";
 
             using (var command = new SqlCommand(query, connection))
@@ -290,8 +292,8 @@ public class CustomerRepository : ICustomerRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"INSERT INTO CustomerNotes (CustomerId, EmployeeId, Note, CreatedAt)
-                         VALUES (@CustomerId, @EmployeeId, @Note, @CreatedAt);
+            var query = @"INSERT INTO CustomerNotes (CustomerId, EmployeeId, Note, IsActive, CreatedAt)
+                         VALUES (@CustomerId, @EmployeeId, @Note, 1, @CreatedAt);
                          SELECT CAST(SCOPE_IDENTITY() as int)";
 
             using (var command = new SqlCommand(query, connection))
@@ -314,7 +316,7 @@ public class CustomerRepository : ICustomerRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = "DELETE FROM CustomerNotes WHERE Id = @Id";
+            var query = "UPDATE CustomerNotes SET IsActive = 0 WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -338,7 +340,7 @@ public class CustomerRepository : ICustomerRepository
         {
             await connection.OpenAsync();
             var query = @"SELECT Id, CustomerId, AllergyDescription, Severity, CreatedAt
-                         FROM CustomerAllergies WHERE CustomerId = @CustomerId
+                         FROM CustomerAllergies WHERE CustomerId = @CustomerId AND IsActive = 1
                          ORDER BY Severity DESC, CreatedAt DESC";
 
             using (var command = new SqlCommand(query, connection))
@@ -370,8 +372,8 @@ public class CustomerRepository : ICustomerRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"INSERT INTO CustomerAllergies (CustomerId, AllergyDescription, Severity, CreatedAt)
-                         VALUES (@CustomerId, @AllergyDescription, @Severity, @CreatedAt);
+            var query = @"INSERT INTO CustomerAllergies (CustomerId, AllergyDescription, Severity, IsActive, CreatedAt)
+                         VALUES (@CustomerId, @AllergyDescription, @Severity, 1, @CreatedAt);
                          SELECT CAST(SCOPE_IDENTITY() as int)";
 
             using (var command = new SqlCommand(query, connection))
@@ -423,7 +425,7 @@ public class CustomerRepository : ICustomerRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = "DELETE FROM CustomerAllergies WHERE Id = @Id";
+            var query = "UPDATE CustomerAllergies SET IsActive = 0 WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -686,7 +688,7 @@ public class CustomerRepository : ICustomerRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = "DELETE FROM CustomerPaymentMethods WHERE Id = @Id";
+            var query = "UPDATE CustomerPaymentMethods SET IsActive = 0 WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
             {

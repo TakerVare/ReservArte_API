@@ -18,4 +18,6 @@ public class MessageTemplate
     public string Body { get; set; } = string.Empty;
     /// <summary>Idioma, ej. es-ES.</summary>
     public string Language { get; set; } = "es-ES";
+    /// <summary>Soft delete: false cuando el registro está "eliminado".</summary>
+    public bool IsActive { get; set; } = true;
 }

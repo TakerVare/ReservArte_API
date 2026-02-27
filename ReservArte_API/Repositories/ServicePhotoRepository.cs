@@ -29,7 +29,7 @@ public class ServicePhotoRepository : IServicePhotoRepository
                      INNER JOIN Employees e ON sp.UploadedBy = e.Id
                      INNER JOIN Appointments a ON sp.AppointmentId = a.Id
                      INNER JOIN Customers c ON a.CustomerId = c.Id
-                     WHERE sp.Id = @Id";
+                     WHERE sp.Id = @Id AND sp.IsActive = 1";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);
@@ -49,9 +49,9 @@ public class ServicePhotoRepository : IServicePhotoRepository
         await connection.OpenAsync();
         
         var query = @"INSERT INTO ServicePhotos (AppointmentId, Type, S3Key, S3Bucket, 
-                     UploadedBy, UploadedAt, IsPublic, ExpiresAt)
+                     UploadedBy, UploadedAt, IsPublic, ExpiresAt, IsActive)
                      VALUES (@AppointmentId, @Type, @S3Key, @S3Bucket,
-                     @UploadedBy, @UploadedAt, @IsPublic, @ExpiresAt);
+                     @UploadedBy, @UploadedAt, @IsPublic, @ExpiresAt, 1);
                      SELECT CAST(SCOPE_IDENTITY() as int)";
         
         using var command = new SqlCommand(query, connection);
@@ -92,7 +92,7 @@ public class ServicePhotoRepository : IServicePhotoRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = "DELETE FROM ServicePhotos WHERE Id = @Id";
+        var query = "UPDATE ServicePhotos SET IsActive = 0 WHERE Id = @Id";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);
@@ -121,7 +121,7 @@ public class ServicePhotoRepository : IServicePhotoRepository
                      INNER JOIN Appointments a ON sp.AppointmentId = a.Id
                      INNER JOIN Customers c ON a.CustomerId = c.Id
                      WHERE sp.AppointmentId = @AppointmentId
-                     AND sp.ExpiresAt > @Now
+                     AND sp.ExpiresAt > @Now AND sp.IsActive = 1
                      ORDER BY sp.Type, sp.UploadedAt";
         
         using var command = new SqlCommand(query, connection);
@@ -153,7 +153,7 @@ public class ServicePhotoRepository : IServicePhotoRepository
                      INNER JOIN Appointments a ON sp.AppointmentId = a.Id
                      INNER JOIN Customers c ON a.CustomerId = c.Id
                      WHERE a.CustomerId = @CustomerId
-                     AND sp.ExpiresAt > @Now
+                     AND sp.ExpiresAt > @Now AND sp.IsActive = 1
                      ORDER BY sp.UploadedAt DESC";
         
         using var command = new SqlCommand(query, connection);

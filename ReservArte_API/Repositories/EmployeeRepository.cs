@@ -25,7 +25,7 @@ public class EmployeeRepository : IEmployeeRepository
         {
             await connection.OpenAsync();
             var query = @"SELECT Id, FirstName, LastName, Email, Phone, ProfileImageUrl, HireDate, IsActive 
-                         FROM Employees WHERE Rol = @Rol";
+                         FROM Employees WHERE Rol = @Rol AND IsActive = 1";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -63,7 +63,7 @@ public class EmployeeRepository : IEmployeeRepository
         {
             await connection.OpenAsync();
             var query = @"SELECT Id, FirstName, LastName, Email, Phone, Rol, ProfileImageUrl, HireDate, IsActive 
-                         FROM Employees WHERE Id = @Id";
+                         FROM Employees WHERE Id = @Id AND IsActive = 1";
 
             using (var command = new SqlCommand(query, connection))
             {
@@ -165,7 +165,7 @@ public class EmployeeRepository : IEmployeeRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = "DELETE FROM Employees WHERE Id = @Id";
+            var query = "UPDATE Employees SET IsActive = 0 WHERE Id = @Id";
 
             using (var command = new SqlCommand(query, connection))
             {

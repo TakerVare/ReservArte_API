@@ -51,7 +51,7 @@ public class WaitingListRepository : IWaitingListRepository
                      INNER JOIN Customers c ON wl.CustomerId = c.Id
                      INNER JOIN Services s ON wl.ServiceId = s.Id
                      LEFT JOIN Employees e ON wl.PreferredEmployeeId = e.Id
-                     WHERE wl.Id = @Id";
+                     WHERE wl.Id = @Id AND wl.IsActive = 1";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);
@@ -82,7 +82,7 @@ public class WaitingListRepository : IWaitingListRepository
                      INNER JOIN Customers c ON wl.CustomerId = c.Id
                      INNER JOIN Services s ON wl.ServiceId = s.Id
                      LEFT JOIN Employees e ON wl.PreferredEmployeeId = e.Id
-                     WHERE wl.CustomerId = @CustomerId
+                     WHERE wl.CustomerId = @CustomerId AND wl.IsActive = 1
                      ORDER BY wl.CreatedAt DESC";
         
         using var command = new SqlCommand(query, connection);
@@ -114,7 +114,7 @@ public class WaitingListRepository : IWaitingListRepository
                      INNER JOIN Customers c ON wl.CustomerId = c.Id
                      INNER JOIN Services s ON wl.ServiceId = s.Id
                      LEFT JOIN Employees e ON wl.PreferredEmployeeId = e.Id
-                     WHERE wl.NotifiedAt IS NULL
+                     WHERE wl.NotifiedAt IS NULL AND wl.IsActive = 1
                      ORDER BY wl.Priority, wl.CreatedAt";
         
         using var command = new SqlCommand(query, connection);
@@ -146,7 +146,7 @@ public class WaitingListRepository : IWaitingListRepository
                      INNER JOIN Services s ON wl.ServiceId = s.Id
                      LEFT JOIN Employees e ON wl.PreferredEmployeeId = e.Id
                      WHERE wl.ServiceId = @ServiceId
-                     AND wl.NotifiedAt IS NULL
+                     AND wl.NotifiedAt IS NULL AND wl.IsActive = 1
                      AND @Date >= wl.DateRangeStart
                      AND @Date <= wl.DateRangeEnd
                      AND (wl.PreferredDate IS NULL OR wl.PreferredDate = @Date)";
@@ -183,10 +183,10 @@ public class WaitingListRepository : IWaitingListRepository
         
         var query = @"INSERT INTO WaitingList 
                      (CustomerId, ServiceId, PreferredEmployeeId, 
-                      PreferredDate, DateRangeStart, DateRangeEnd, Priority, CreatedAt)
+                      PreferredDate, DateRangeStart, DateRangeEnd, Priority, IsActive, CreatedAt)
                      VALUES 
                      (@CustomerId, @ServiceId, @PreferredEmployeeId, 
-                      @PreferredDate, @DateRangeStart, @DateRangeEnd, @Priority, @CreatedAt);
+                      @PreferredDate, @DateRangeStart, @DateRangeEnd, @Priority, 1, @CreatedAt);
                      SELECT CAST(SCOPE_IDENTITY() as int)";
         
         using var command = new SqlCommand(query, connection);
@@ -210,7 +210,7 @@ public class WaitingListRepository : IWaitingListRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = "DELETE FROM WaitingList WHERE Id = @Id";
+        var query = "UPDATE WaitingList SET IsActive = 0 WHERE Id = @Id";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);

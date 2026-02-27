@@ -13,6 +13,8 @@ public class CustomerPaymentMethod
     public string CardBrand { get; set; } = string.Empty;
     public string CardExpiry { get; set; } = string.Empty; // Formato AAMM
     public bool IsDefault { get; set; } = false;
+    /// <summary>Soft delete: false cuando el registro está "eliminado".</summary>
+    public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     

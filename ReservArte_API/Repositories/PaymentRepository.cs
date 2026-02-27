@@ -27,7 +27,7 @@ public class PaymentRepository : IPaymentRepository
                      RedsysResponse, RedsysTransactionType, RedsysCardNumber,
                      CustomerPaymentMethodId, ProcessedAt, RefundedAmount, RefundedAt,
                      Metadata, Notes, RegisteredById, CreatedAt, UpdatedAt
-                     FROM Payments WHERE Id = @Id";
+                     FROM Payments WHERE Id = @Id AND IsActive = 1";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);
@@ -83,12 +83,12 @@ public class PaymentRepository : IPaymentRepository
                      PaymentMethodType, Status, RedsysOrderNumber, RedsysAuthCode,
                      RedsysResponse, RedsysTransactionType, RedsysCardNumber,
                      CustomerPaymentMethodId, ProcessedAt, RefundedAmount, RefundedAt,
-                     Metadata, Notes, RegisteredById, CreatedAt)
+                     Metadata, Notes, RegisteredById, IsActive, CreatedAt)
                      VALUES (@AppointmentId, @CustomerId, @Amount, @Currency,
                      @PaymentMethodType, @Status, @RedsysOrderNumber, @RedsysAuthCode,
                      @RedsysResponse, @RedsysTransactionType, @RedsysCardNumber,
                      @CustomerPaymentMethodId, @ProcessedAt, @RefundedAmount, @RefundedAt,
-                     @Metadata, @Notes, @RegisteredById, @CreatedAt);
+                     @Metadata, @Notes, @RegisteredById, 1, @CreatedAt);
                      SELECT CAST(SCOPE_IDENTITY() as int)";
         
         using var command = new SqlCommand(query, connection);
@@ -148,7 +148,7 @@ public class PaymentRepository : IPaymentRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = "DELETE FROM Payments WHERE Id = @Id";
+        var query = "UPDATE Payments SET IsActive = 0 WHERE Id = @Id";
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);
         
@@ -173,6 +173,7 @@ public class PaymentRepository : IPaymentRepository
                      c.FirstName + ' ' + c.LastName as CustomerName
                      FROM Payments p
                      INNER JOIN Customers c ON p.CustomerId = c.Id
+                     WHERE p.IsActive = 1
                      ORDER BY p.CreatedAt DESC";
         
         using var command = new SqlCommand(query, connection);
@@ -263,7 +264,7 @@ public class PaymentRepository : IPaymentRepository
                      c.FirstName + ' ' + c.LastName as CustomerName
                      FROM Payments p
                      INNER JOIN Customers c ON p.CustomerId = c.Id
-                     WHERE p.CustomerId = @CustomerId
+                     WHERE p.CustomerId = @CustomerId AND p.IsActive = 1
                      ORDER BY p.CreatedAt DESC";
         
         using var command = new SqlCommand(query, connection);
@@ -291,7 +292,7 @@ public class PaymentRepository : IPaymentRepository
                      c.FirstName + ' ' + c.LastName as CustomerName
                      FROM Payments p
                      INNER JOIN Customers c ON p.CustomerId = c.Id
-                     WHERE p.AppointmentId = @AppointmentId
+                     WHERE p.AppointmentId = @AppointmentId AND p.IsActive = 1
                      ORDER BY p.CreatedAt DESC";
         
         using var command = new SqlCommand(query, connection);
@@ -667,7 +668,7 @@ public class PaymentRepository : IPaymentRepository
 
     private static string BuildWhereClause(PaymentFilterDto filter)
     {
-        var conditions = new List<string>();
+        var conditions = new List<string> { "p.IsActive = 1" };
         
         if (filter.StartDate.HasValue)
             conditions.Add("CAST(p.CreatedAt AS DATE) >= @StartDate");
@@ -696,9 +697,7 @@ public class PaymentRepository : IPaymentRepository
         if (filter.MaxAmount.HasValue)
             conditions.Add("p.Amount <= @MaxAmount");
         
-        return conditions.Count > 0 
-            ? "WHERE " + string.Join(" AND ", conditions) 
-            : string.Empty;
+        return "WHERE " + string.Join(" AND ", conditions);
     }
 
     private static string BuildOrderClause(PaymentFilterDto filter)

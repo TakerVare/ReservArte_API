@@ -24,7 +24,7 @@ public class CustomerPaymentMethodRepository : ICustomerPaymentMethodRepository
         
         var query = @"SELECT Id, CustomerId, RedsysToken, RedsysCofTxnid, 
                      CardLast4, CardBrand, CardExpiry, IsDefault, CreatedAt, UpdatedAt
-                     FROM CustomerPaymentMethods WHERE Id = @Id";
+                     FROM CustomerPaymentMethods WHERE Id = @Id AND IsActive = 1";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);
@@ -50,8 +50,8 @@ public class CustomerPaymentMethodRepository : ICustomerPaymentMethodRepository
         }
         
         var query = @"INSERT INTO CustomerPaymentMethods 
-                     (CustomerId, RedsysToken, RedsysCofTxnid, CardLast4, CardBrand, CardExpiry, IsDefault, CreatedAt, UpdatedAt)
-                     VALUES (@CustomerId, @RedsysToken, @RedsysCofTxnid, @CardLast4, @CardBrand, @CardExpiry, @IsDefault, @CreatedAt, @UpdatedAt);
+                     (CustomerId, RedsysToken, RedsysCofTxnid, CardLast4, CardBrand, CardExpiry, IsDefault, IsActive, CreatedAt, UpdatedAt)
+                     VALUES (@CustomerId, @RedsysToken, @RedsysCofTxnid, @CardLast4, @CardBrand, @CardExpiry, @IsDefault, 1, @CreatedAt, @UpdatedAt);
                      SELECT CAST(SCOPE_IDENTITY() as int)";
         
         using var command = new SqlCommand(query, connection);
@@ -76,7 +76,7 @@ public class CustomerPaymentMethodRepository : ICustomerPaymentMethodRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = "DELETE FROM CustomerPaymentMethods WHERE Id = @Id";
+        var query = "UPDATE CustomerPaymentMethods SET IsActive = 0 WHERE Id = @Id";
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);
         
@@ -97,7 +97,7 @@ public class CustomerPaymentMethodRepository : ICustomerPaymentMethodRepository
         
         var query = @"SELECT Id, CustomerId, CardLast4, CardBrand, CardExpiry, IsDefault, CreatedAt
                      FROM CustomerPaymentMethods 
-                     WHERE CustomerId = @CustomerId
+                     WHERE CustomerId = @CustomerId AND IsActive = 1
                      ORDER BY IsDefault DESC, CreatedAt DESC";
         
         using var command = new SqlCommand(query, connection);
@@ -131,7 +131,7 @@ public class CustomerPaymentMethodRepository : ICustomerPaymentMethodRepository
         var query = @"SELECT TOP 1 Id, CustomerId, RedsysToken, RedsysCofTxnid, 
                      CardLast4, CardBrand, CardExpiry, IsDefault, CreatedAt, UpdatedAt
                      FROM CustomerPaymentMethods 
-                     WHERE CustomerId = @CustomerId AND IsDefault = 1";
+                     WHERE CustomerId = @CustomerId AND IsDefault = 1 AND IsActive = 1";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@CustomerId", customerId);
@@ -150,7 +150,7 @@ public class CustomerPaymentMethodRepository : ICustomerPaymentMethodRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = "SELECT COUNT(1) FROM CustomerPaymentMethods WHERE CustomerId = @CustomerId";
+        var query = "SELECT COUNT(1) FROM CustomerPaymentMethods WHERE CustomerId = @CustomerId AND IsActive = 1";
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@CustomerId", customerId);
         
@@ -163,7 +163,7 @@ public class CustomerPaymentMethodRepository : ICustomerPaymentMethodRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = "SELECT COUNT(1) FROM CustomerPaymentMethods WHERE CustomerId = @CustomerId";
+        var query = "SELECT COUNT(1) FROM CustomerPaymentMethods WHERE CustomerId = @CustomerId AND IsActive = 1";
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@CustomerId", customerId);
         
@@ -201,7 +201,7 @@ public class CustomerPaymentMethodRepository : ICustomerPaymentMethodRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = "DELETE FROM CustomerPaymentMethods WHERE CustomerId = @CustomerId";
+        var query = "UPDATE CustomerPaymentMethods SET IsActive = 0 WHERE CustomerId = @CustomerId";
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@CustomerId", customerId);
         
@@ -216,7 +216,7 @@ public class CustomerPaymentMethodRepository : ICustomerPaymentMethodRepository
     {
         var query = @"UPDATE CustomerPaymentMethods 
                      SET IsDefault = 0, UpdatedAt = @UpdatedAt 
-                     WHERE CustomerId = @CustomerId AND IsDefault = 1";
+                     WHERE CustomerId = @CustomerId AND IsDefault = 1 AND IsActive = 1";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@CustomerId", customerId);

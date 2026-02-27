@@ -106,7 +106,7 @@ public class ReminderConfigurationRepository : IReminderConfigurationRepository
     {
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        using var command = new SqlCommand("DELETE FROM ReminderConfigurations WHERE Id = @Id", connection);
+        using var command = new SqlCommand("UPDATE ReminderConfigurations SET IsActive = 0 WHERE Id = @Id", connection);
         command.Parameters.AddWithValue("@Id", id);
         return await command.ExecuteNonQueryAsync() > 0;
     }

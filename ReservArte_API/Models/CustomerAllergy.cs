@@ -9,5 +9,7 @@ public class CustomerAllergy
     public int CustomerId { get; set; }
     public string AllergyDescription { get; set; } = string.Empty;
     public string Severity { get; set; } = AllergySeverity.Low;
+    /// <summary>Soft delete: false cuando el registro está "eliminado".</summary>
+    public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

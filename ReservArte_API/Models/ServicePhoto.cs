@@ -50,6 +50,9 @@ public class ServicePhoto
     /// </summary>
     public DateTime ExpiresAt { get; set; }
     
+    /// <summary>Soft delete: false cuando el registro está "eliminado".</summary>
+    public bool IsActive { get; set; } = true;
+    
     // Propiedades de navegación para DTOs
     public string? EmployeeName { get; set; }
     public string? CustomerName { get; set; }

@@ -18,7 +18,7 @@ public class MessageTemplateRepository : IMessageTemplateRepository
     {
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        var query = "SELECT Id, Name, Type, Subject, Body, Language FROM MessageTemplates WHERE Id = @Id";
+        var query = "SELECT Id, Name, Type, Subject, Body, Language FROM MessageTemplates WHERE Id = @Id AND IsActive = 1";
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);
         using var reader = await command.ExecuteReaderAsync();
@@ -32,7 +32,7 @@ public class MessageTemplateRepository : IMessageTemplateRepository
         var list = new List<MessageTemplate>();
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        var query = "SELECT Id, Name, Type, Subject, Body, Language FROM MessageTemplates ORDER BY Name";
+        var query = "SELECT Id, Name, Type, Subject, Body, Language FROM MessageTemplates WHERE IsActive = 1 ORDER BY Name";
         using var command = new SqlCommand(query, connection);
         using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -45,8 +45,8 @@ public class MessageTemplateRepository : IMessageTemplateRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         var id = template.Id == Guid.Empty ? Guid.NewGuid() : template.Id;
-        var query = @"INSERT INTO MessageTemplates (Id, Name, Type, Subject, Body, Language)
-                     VALUES (@Id, @Name, @Type, @Subject, @Body, @Language)";
+        var query = @"INSERT INTO MessageTemplates (Id, Name, Type, Subject, Body, Language, IsActive)
+                     VALUES (@Id, @Name, @Type, @Subject, @Body, @Language, 1)";
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);
         command.Parameters.AddWithValue("@Name", template.Name);
@@ -80,7 +80,7 @@ public class MessageTemplateRepository : IMessageTemplateRepository
     {
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        using var command = new SqlCommand("DELETE FROM MessageTemplates WHERE Id = @Id", connection);
+        using var command = new SqlCommand("UPDATE MessageTemplates SET IsActive = 0 WHERE Id = @Id", connection);
         command.Parameters.AddWithValue("@Id", id);
         return await command.ExecuteNonQueryAsync() > 0;
     }
@@ -90,7 +90,7 @@ public class MessageTemplateRepository : IMessageTemplateRepository
         var list = new List<MessageTemplate>();
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
-        var query = "SELECT Id, Name, Type, Subject, Body, Language FROM MessageTemplates WHERE Type = @Type ORDER BY Name";
+        var query = "SELECT Id, Name, Type, Subject, Body, Language FROM MessageTemplates WHERE Type = @Type AND IsActive = 1 ORDER BY Name";
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Type", type);
         using var reader = await command.ExecuteReaderAsync();
