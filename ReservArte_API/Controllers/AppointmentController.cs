@@ -153,16 +153,22 @@ public class AppointmentController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene las citas de un empleado en un rango de fechas
+    /// Obtiene las citas de un empleado en un rango de fechas.
+    /// startDate y endDate son opcionales: si no se envían, se usa desde el primer día del mes actual hasta el último del mes siguiente.
     /// </summary>
     [HttpGet("employee/{employeeId}")]
     [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
     public async Task<ActionResult<IEnumerable<AgendaAppointmentDto>>> GetByEmployee(
-        int employeeId, 
-        [FromQuery] DateOnly startDate, 
-        [FromQuery] DateOnly endDate)
+        int employeeId,
+        [FromQuery] DateOnly? startDate = null,
+        [FromQuery] DateOnly? endDate = null)
     {
-        var appointments = await _appointmentService.GetByEmployeeIdAsync(employeeId, startDate, endDate);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var from = startDate ?? new DateOnly(today.Year, today.Month, 1);
+        var to = endDate ?? from.AddMonths(2).AddDays(-1);
+        if (to < from)
+            return BadRequest(new { message = "endDate debe ser mayor o igual que startDate" });
+        var appointments = await _appointmentService.GetByEmployeeIdAsync(employeeId, from, to);
         return Ok(appointments);
     }
 
