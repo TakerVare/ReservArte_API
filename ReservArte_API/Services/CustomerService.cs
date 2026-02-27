@@ -47,7 +47,7 @@ public class CustomerService : ICustomerService
             BirthDate = customerDto.BirthDate,
             PreferredContactMethod = customerDto.PreferredContactMethod,
             MarketingConsent = customerDto.MarketingConsent,
-            Category = CustomerCategory.New,
+            Category = CustomerCategory.Regular,
             LoyaltyPoints = 0,
             IsBlocked = false,
             Rol = Roles.Client,
