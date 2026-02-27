@@ -283,11 +283,15 @@ public class AppointmentService : IAppointmentService
         if (appointment == null)
             return null;
 
-        // Validar transición de estado
-        if (!IsValidStatusTransition(appointment.Status, dto.Status))
-            throw new InvalidOperationException($"No se puede cambiar de {appointment.Status} a {dto.Status}");
+        var newStatus = Status.Normalize(dto.Status);
+        if (newStatus == null)
+            throw new InvalidOperationException($"Estado de cita no válido: '{dto.Status}'. Valores esperados: pending, confirmed, in_progress, completed, cancelled_by_customer, cancelled_by_business, no_show.");
 
-        var updated = await _appointmentRepository.UpdateStatusAsync(id, dto.Status, dto.Notes);
+        // Validar transición de estado
+        if (!IsValidStatusTransition(appointment.Status, newStatus))
+            throw new InvalidOperationException($"No se puede cambiar de {appointment.Status} a {newStatus}");
+
+        var updated = await _appointmentRepository.UpdateStatusAsync(id, newStatus, dto.Notes);
         if (!updated)
             return null;
 

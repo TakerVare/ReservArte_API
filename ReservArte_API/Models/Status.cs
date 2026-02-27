@@ -39,5 +39,16 @@ public static class Status
     {
         return !string.IsNullOrEmpty(status) && Final.Contains(status);
     }
+
+    /// <summary>
+    /// Devuelve el valor canónico del estado (snake_case) si el input coincide con alguno (case-insensitive).
+    /// Acepta por ejemplo "CancelledByCustomer" o "cancelled_by_customer".
+    /// </summary>
+    public static string? Normalize(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+        var trimmed = input.Trim();
+        return All.FirstOrDefault(s => string.Equals(s, trimmed, StringComparison.OrdinalIgnoreCase));
+    }
 }
 
