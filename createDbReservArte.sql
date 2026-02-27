@@ -50,6 +50,7 @@ CREATE TABLE Customers (
     BlockedReason NVARCHAR(500) NULL,
     PreferredContactMethod NVARCHAR(50) NOT NULL DEFAULT 'email' CHECK (PreferredContactMethod IN ('email', 'phone', 'sms', 'whatsapp')),
     MarketingConsent BIT NOT NULL DEFAULT 0,
+    IsActive BIT NOT NULL DEFAULT 1,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
 );
 
@@ -114,8 +115,9 @@ CREATE TABLE ServicePricings (
     ServiceId INT NOT NULL,
     EmployeeLevel NVARCHAR(50) NOT NULL CHECK (EmployeeLevel IN ('Junior', 'Senior', 'Expert')),
     Price DECIMAL(10,2) NOT NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    FOREIGN KEY (ServiceId) REFERENCES Services(Id) ON DELETE CASCADE
+    FOREIGN KEY (ServiceId) REFERENCES Services(Id)
 );
 
 CREATE TABLE ProductCategories (
@@ -149,7 +151,8 @@ CREATE TABLE ServiceProducts (
     ProductId INT NOT NULL,
     QuantityUsed DECIMAL(10,2) NULL,
     Notes NVARCHAR(500) NULL,
-    FOREIGN KEY (ServiceId) REFERENCES Services(Id) ON DELETE CASCADE,
+    IsActive BIT NOT NULL DEFAULT 1,
+    FOREIGN KEY (ServiceId) REFERENCES Services(Id),
     FOREIGN KEY (ProductId) REFERENCES Products(Id)
 );
 
@@ -170,7 +173,8 @@ CREATE TABLE ServicePackageItems (
     ServicePackageId INT NOT NULL,
     ServiceId INT NOT NULL,
     [Order] INT NOT NULL,
-    FOREIGN KEY (ServicePackageId) REFERENCES ServicePackages(Id) ON DELETE CASCADE,
+    IsActive BIT NOT NULL DEFAULT 1,
+    FOREIGN KEY (ServicePackageId) REFERENCES ServicePackages(Id),
     FOREIGN KEY (ServiceId) REFERENCES Services(Id)
 );
 
@@ -199,7 +203,8 @@ CREATE TABLE EmployeeAvailabilities (
     StartTime TIME NOT NULL,
     EndTime TIME NOT NULL,
     IsRecurring BIT NOT NULL DEFAULT 1,
-    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id) ON DELETE CASCADE
+    IsActive BIT NOT NULL DEFAULT 1,
+    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id)
 );
 
 CREATE TABLE EmployeeExceptions (
@@ -209,16 +214,18 @@ CREATE TABLE EmployeeExceptions (
     EndDateTime DATETIME2 NOT NULL,
     Reason NVARCHAR(500) NULL,
     Type NVARCHAR(50) NOT NULL CHECK (Type IN ('vacation', 'sick_leave', 'personal', 'training', 'other')),
-    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id) ON DELETE CASCADE
+    IsActive BIT NOT NULL DEFAULT 1,
+    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id)
 );
 
 CREATE TABLE EmployeeServices (
     EmployeeId INT NOT NULL,
     ServiceId INT NOT NULL,
     ProficiencyLevel INT NOT NULL DEFAULT 1 CHECK (ProficiencyLevel BETWEEN 1 AND 5),
+    IsActive BIT NOT NULL DEFAULT 1,
     PRIMARY KEY (EmployeeId, ServiceId),
-    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id) ON DELETE CASCADE,
-    FOREIGN KEY (ServiceId) REFERENCES Services(Id) ON DELETE CASCADE
+    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id),
+    FOREIGN KEY (ServiceId) REFERENCES Services(Id)
 );
 
 CREATE TABLE Appointments (
@@ -239,6 +246,7 @@ CREATE TABLE Appointments (
     CancelledById INT NULL,
     CancelledByType NVARCHAR(50) NULL CHECK (CancelledByType IN ('customer', 'business', 'system')),
     Notes NVARCHAR(MAX) NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME2 NULL,
     FOREIGN KEY (CustomerId) REFERENCES Customers(Id),
@@ -267,9 +275,10 @@ CREATE TABLE CustomerPaymentMethods (
     CardBrand NVARCHAR(50) NOT NULL,
     CardExpiry NVARCHAR(4) NOT NULL,
     IsDefault BIT NOT NULL DEFAULT 0,
+    IsActive BIT NOT NULL DEFAULT 1,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    FOREIGN KEY (CustomerId) REFERENCES Customers(Id) ON DELETE CASCADE
+    FOREIGN KEY (CustomerId) REFERENCES Customers(Id)
 );
 
 CREATE TABLE Payments (
@@ -292,6 +301,7 @@ CREATE TABLE Payments (
     Metadata NVARCHAR(MAX) NULL,
     Notes NVARCHAR(500) NULL,
     RegisteredById INT NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     UpdatedAt DATETIME2 NULL,
     FOREIGN KEY (AppointmentId) REFERENCES Appointments(Id),
@@ -304,8 +314,9 @@ CREATE TABLE CustomerNotes (
     CustomerId INT NOT NULL,
     EmployeeId INT NOT NULL,
     Note NVARCHAR(MAX) NOT NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    FOREIGN KEY (CustomerId) REFERENCES Customers(Id) ON DELETE CASCADE,
+    FOREIGN KEY (CustomerId) REFERENCES Customers(Id),
     FOREIGN KEY (EmployeeId) REFERENCES Employees(Id)
 );
 
@@ -314,8 +325,9 @@ CREATE TABLE CustomerAllergies (
     CustomerId INT NOT NULL,
     AllergyDescription NVARCHAR(500) NOT NULL,
     Severity NVARCHAR(50) NOT NULL CHECK (Severity IN ('mild', 'moderate', 'severe')),
+    IsActive BIT NOT NULL DEFAULT 1,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-    FOREIGN KEY (CustomerId) REFERENCES Customers(Id) ON DELETE CASCADE
+    FOREIGN KEY (CustomerId) REFERENCES Customers(Id)
 );
 
 CREATE TABLE CustomerConsents (
@@ -325,7 +337,8 @@ CREATE TABLE CustomerConsents (
     IsGranted BIT NOT NULL,
     GrantedAt DATETIME2 NULL,
     RevokedAt DATETIME2 NULL,
-    FOREIGN KEY (CustomerId) REFERENCES Customers(Id) ON DELETE CASCADE
+    IsActive BIT NOT NULL DEFAULT 1,
+    FOREIGN KEY (CustomerId) REFERENCES Customers(Id)
 );
 
 CREATE TABLE ServicePhotos (
@@ -338,7 +351,8 @@ CREATE TABLE ServicePhotos (
     UploadedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     IsPublic BIT NOT NULL DEFAULT 0,
     ExpiresAt DATETIME2 NOT NULL,
-    FOREIGN KEY (AppointmentId) REFERENCES Appointments(Id) ON DELETE CASCADE,
+    IsActive BIT NOT NULL DEFAULT 1,
+    FOREIGN KEY (AppointmentId) REFERENCES Appointments(Id),
     FOREIGN KEY (UploadedBy) REFERENCES Employees(Id)
 );
 
@@ -363,9 +377,10 @@ CREATE TABLE WaitingList (
     DateRangeStart DATETIME2 NOT NULL,
     DateRangeEnd DATETIME2 NOT NULL,
     Priority INT NOT NULL DEFAULT 1000,
+    IsActive BIT NOT NULL DEFAULT 1,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     NotifiedAt DATETIME2 NULL,
-    FOREIGN KEY (CustomerId) REFERENCES Customers(Id) ON DELETE CASCADE,
+    FOREIGN KEY (CustomerId) REFERENCES Customers(Id),
     FOREIGN KEY (ServiceId) REFERENCES Services(Id),
     FOREIGN KEY (PreferredEmployeeId) REFERENCES Employees(Id)
 );
@@ -415,7 +430,8 @@ CREATE TABLE MessageTemplates (
     Type NVARCHAR(100) NOT NULL CHECK (Type IN ('email', 'sms', 'whatsapp', 'push')),
     Subject NVARCHAR(500) NULL,
     Body NVARCHAR(MAX) NOT NULL,
-    Language NVARCHAR(10) NOT NULL DEFAULT 'es'
+    Language NVARCHAR(10) NOT NULL DEFAULT 'es',
+    IsActive BIT NOT NULL DEFAULT 1
 );
 
 CREATE TABLE ReminderConfigurations (
