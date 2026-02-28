@@ -479,7 +479,7 @@ PRINT 'Base de datos ReservArteDB inicializada correctamente';
 
 -- USUARIOS (para autenticación). Id 1=admin, 2-3=empleados, 4-6=clientes.
 INSERT INTO Users (FirstName, LastName, Email, Password, Rol, Phone) VALUES
-('Guillermo', 'Admin', 'guille@svalero.com', '1234', 'admin', '+34600000001'),
+('Guillermo', 'Admin', 'guille@svalero.com', 'Admin1234!', 'admin', '+34600000001'),
 ('María', 'García', 'maria.garcia@reservarte.com', 'Maria123!', 'employee', '+34600000002'),
 ('Laura', 'Martínez', 'laura.martinez@reservarte.com', 'Laura123!', 'employee', '+34600000003'),
 ('Ana', 'López', 'ana.lopez@email.com', 'Cliente123!', 'client', '+34600000004'),
