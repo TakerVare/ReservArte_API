@@ -1,5 +1,6 @@
 using ReservArte_API.Models;
 using ReservArte_API.Models.DTOs;
+using ReservArte_API.Repositories;
 using ReservArte_API.Repositories.Interfaces;
 using ReservArte_API.Services.Interfaces;
 
@@ -8,10 +9,14 @@ namespace ReservArte_API.Services;
 public class EmployeeService : IEmployeeService
 {
     private readonly IEmployeeRepository _repository;
+    private readonly IUserRepository _userRepository;
+    private readonly IConfiguration _configuration;
 
-    public EmployeeService(IEmployeeRepository employeeRepository)
+    public EmployeeService(IEmployeeRepository employeeRepository, IUserRepository userRepository, IConfiguration configuration)
     {
         _repository = employeeRepository;
+        _userRepository = userRepository;
+        _configuration = configuration;
     }
 
     #region Employee CRUD
@@ -31,8 +36,19 @@ public class EmployeeService : IEmployeeService
 
     public async Task<EmployeeDtoOut?> CreateAsync(EmployeeDtoIn employeeDto)
     {
+        var password = employeeDto.Password ?? _configuration["DefaultNewUserPassword"] ?? "ChangeMe123!";
+        var userId = await _userRepository.CreateUserAsync(
+            employeeDto.FirstName,
+            employeeDto.LastName,
+            employeeDto.Email,
+            password,
+            Roles.Employee,
+            employeeDto.Phone,
+            employeeDto.ProfileImageUrl);
+
         var employee = new Employee
         {
+            Id = userId,
             FirstName = employeeDto.FirstName,
             LastName = employeeDto.LastName,
             Email = employeeDto.Email,

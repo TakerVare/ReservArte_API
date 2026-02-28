@@ -150,19 +150,22 @@ public class CustomerRepository : ICustomerRepository
 
     public async Task<Customer?> CreateAsync(Customer customer)
     {
+        if (customer.Id <= 0)
+            throw new InvalidOperationException("Customer.Id debe ser el User.Id asignado antes de insertar en Customers.");
+
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"INSERT INTO Customers (FirstName, LastName, Email, Phone, Rol, ProfileImageUrl,
+            var query = @"INSERT INTO Customers (Id, FirstName, LastName, Email, Phone, Rol, ProfileImageUrl,
                                 BirthDate, Category, LoyaltyPoints, IsBlocked, BlockedReason,
                                 PreferredContactMethod, MarketingConsent, IsActive, CreatedAt)
-                         VALUES (@FirstName, @LastName, @Email, @Phone, @Rol, @ProfileImageUrl,
+                         VALUES (@Id, @FirstName, @LastName, @Email, @Phone, @Rol, @ProfileImageUrl,
                                 @BirthDate, @Category, @LoyaltyPoints, @IsBlocked, @BlockedReason,
-                                @PreferredContactMethod, @MarketingConsent, 1, @CreatedAt);
-                         SELECT CAST(SCOPE_IDENTITY() as int)";
+                                @PreferredContactMethod, @MarketingConsent, 1, @CreatedAt)";
 
             using (var command = new SqlCommand(query, connection))
             {
+                command.Parameters.AddWithValue("@Id", customer.Id);
                 command.Parameters.AddWithValue("@FirstName", customer.FirstName);
                 command.Parameters.AddWithValue("@LastName", customer.LastName);
                 command.Parameters.AddWithValue("@Email", customer.Email);
@@ -178,9 +181,7 @@ public class CustomerRepository : ICustomerRepository
                 command.Parameters.AddWithValue("@MarketingConsent", customer.MarketingConsent);
                 command.Parameters.AddWithValue("@CreatedAt", customer.CreatedAt);
 
-                var newId = (int)(await command.ExecuteScalarAsync() ?? 0);
-                customer.Id = newId;
-
+                await command.ExecuteNonQueryAsync();
                 return customer;
             }
         }

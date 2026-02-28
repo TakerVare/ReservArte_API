@@ -27,4 +27,7 @@ public class EmployeeDtoIn
     public DateTime? HireDate { get; set; }
 
     public bool IsActive { get; set; } = true;
+
+    /// <summary>Contraseña para el usuario (login). Opcional al crear desde back office; si no se indica se usa DefaultNewUserPassword.</summary>
+    public string? Password { get; set; }
 }

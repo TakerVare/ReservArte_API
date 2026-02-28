@@ -282,7 +282,7 @@ public class CustomerController : ControllerBase
     /// Get payment methods for a customer
     /// </summary>
     [HttpGet("{id}/payment-methods")]
-    [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
+    [Authorize(Policy = "AdminOrEmployeeOrClientOwnCustomer")]
     public async Task<ActionResult<IEnumerable<CustomerPaymentMethodDtoOut>>> GetPaymentMethods(int id)
     {
         var methods = await _customerService.GetPaymentMethodsByCustomerIdAsync(id);
@@ -293,7 +293,7 @@ public class CustomerController : ControllerBase
     /// Add a payment method to a customer (requires SavedCards consent)
     /// </summary>
     [HttpPost("{id}/payment-methods")]
-    [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
+    [Authorize(Policy = "AdminOrEmployeeOrClientOwnCustomer")]
     public async Task<ActionResult<CustomerPaymentMethodDtoOut>> CreatePaymentMethod(int id, [FromBody] CustomerPaymentMethodDtoIn methodDto)
     {
         if (!ModelState.IsValid)
@@ -314,7 +314,7 @@ public class CustomerController : ControllerBase
     /// Set a payment method as default
     /// </summary>
     [HttpPut("{id}/payment-methods/{paymentMethodId}/default")]
-    [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
+    [Authorize(Policy = "AdminOrEmployeeOrClientOwnCustomer")]
     public async Task<IActionResult> SetDefaultPaymentMethod(int id, int paymentMethodId)
     {
         var success = await _customerService.SetDefaultPaymentMethodAsync(id, paymentMethodId);

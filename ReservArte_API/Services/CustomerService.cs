@@ -1,5 +1,6 @@
 using ReservArte_API.Models;
 using ReservArte_API.Models.DTOs;
+using ReservArte_API.Repositories;
 using ReservArte_API.Repositories.Interfaces;
 using ReservArte_API.Services.Interfaces;
 
@@ -8,10 +9,14 @@ namespace ReservArte_API.Services;
 public class CustomerService : ICustomerService
 {
     private readonly ICustomerRepository _repository;
+    private readonly IUserRepository _userRepository;
+    private readonly IConfiguration _configuration;
 
-    public CustomerService(ICustomerRepository customerRepository)
+    public CustomerService(ICustomerRepository customerRepository, IUserRepository userRepository, IConfiguration configuration)
     {
         _repository = customerRepository;
+        _userRepository = userRepository;
+        _configuration = configuration;
     }
 
     #region Customer CRUD
@@ -31,14 +36,22 @@ public class CustomerService : ICustomerService
 
     public async Task<CustomerDtoOut?> CreateAsync(CustomerDtoIn customerDto)
     {
-        // Validate contact method
         if (!ContactMethod.IsValid(customerDto.PreferredContactMethod))
-        {
             customerDto.PreferredContactMethod = ContactMethod.Email;
-        }
+
+        var password = customerDto.Password ?? _configuration["DefaultNewUserPassword"] ?? "ChangeMe123!";
+        var userId = await _userRepository.CreateUserAsync(
+            customerDto.FirstName,
+            customerDto.LastName,
+            customerDto.Email,
+            password,
+            Roles.Client,
+            customerDto.Phone,
+            customerDto.ProfileImageUrl);
 
         var customer = new Customer
         {
+            Id = userId,
             FirstName = customerDto.FirstName,
             LastName = customerDto.LastName,
             Email = customerDto.Email,
@@ -237,17 +250,21 @@ public class CustomerService : ICustomerService
 
     public async Task<CustomerPaymentMethodDtoOut?> CreatePaymentMethodAsync(int customerId, CustomerPaymentMethodDtoIn methodDto)
     {
-        // Verify customer exists
         var customer = await _repository.GetByIdAsync(customerId);
         if (customer == null) return null;
 
-        // Check if customer has SavedCards consent
         var consents = await _repository.GetConsentsByCustomerIdAsync(customerId);
         var savedCardsConsent = consents.FirstOrDefault(c => c.ConsentType == ConsentType.SavedCards);
         if (savedCardsConsent == null || !savedCardsConsent.IsGranted)
         {
-            // Customer hasn't granted consent to save cards
-            return null;
+            // Al guardar una tarjeta se considera consentimiento explícito para SavedCards: crear/actualizar consentimiento
+            await _repository.UpsertConsentAsync(new CustomerConsent
+            {
+                CustomerId = customerId,
+                ConsentType = ConsentType.SavedCards,
+                IsGranted = true,
+                GrantedAt = DateTime.UtcNow
+            });
         }
 
         var method = new CustomerPaymentMethod

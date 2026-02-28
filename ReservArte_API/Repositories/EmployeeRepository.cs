@@ -95,15 +95,18 @@ public class EmployeeRepository : IEmployeeRepository
 
     public async Task<Employee?> CreateAsync(Employee employee)
     {
+        if (employee.Id <= 0)
+            throw new InvalidOperationException("Employee.Id debe ser el User.Id asignado antes de insertar en Employees.");
+
         using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync();
-            var query = @"INSERT INTO Employees (FirstName, LastName, Email, Phone, Rol, ProfileImageUrl, HireDate, IsActive)
-                         VALUES (@FirstName, @LastName, @Email, @Phone, @Rol, @ProfileImageUrl, @HireDate, @IsActive);
-                         SELECT CAST(SCOPE_IDENTITY() as int)";
+            var query = @"INSERT INTO Employees (Id, FirstName, LastName, Email, Phone, Rol, ProfileImageUrl, HireDate, IsActive)
+                         VALUES (@Id, @FirstName, @LastName, @Email, @Phone, @Rol, @ProfileImageUrl, @HireDate, @IsActive)";
 
             using (var command = new SqlCommand(query, connection))
             {
+                command.Parameters.AddWithValue("@Id", employee.Id);
                 command.Parameters.AddWithValue("@FirstName", employee.FirstName);
                 command.Parameters.AddWithValue("@LastName", employee.LastName);
                 command.Parameters.AddWithValue("@Email", employee.Email);
@@ -113,9 +116,7 @@ public class EmployeeRepository : IEmployeeRepository
                 command.Parameters.AddWithValue("@HireDate", (object?)employee.HireDate ?? DBNull.Value);
                 command.Parameters.AddWithValue("@IsActive", employee.IsActive);
 
-                var newId = (int)(await command.ExecuteScalarAsync() ?? 0);
-                employee.Id = newId;
-
+                await command.ExecuteNonQueryAsync();
                 return employee;
             }
         }

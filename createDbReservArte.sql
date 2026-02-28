@@ -33,10 +33,10 @@ CREATE TABLE Users (
 );
 
 -- ============================================
--- TABLA CUSTOMERS
+-- TABLA CUSTOMERS (Id = User.Id para unificar identificador)
 -- ============================================
 CREATE TABLE Customers (
-    Id INT PRIMARY KEY IDENTITY(1,1),
+    Id INT NOT NULL PRIMARY KEY,
     FirstName NVARCHAR(100) NOT NULL,
     LastName NVARCHAR(100) NOT NULL,
     Email NVARCHAR(255) NOT NULL UNIQUE,
@@ -51,14 +51,15 @@ CREATE TABLE Customers (
     PreferredContactMethod NVARCHAR(50) NOT NULL DEFAULT 'email' CHECK (PreferredContactMethod IN ('email', 'phone', 'sms', 'whatsapp')),
     MarketingConsent BIT NOT NULL DEFAULT 0,
     IsActive BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE()
+    CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    FOREIGN KEY (Id) REFERENCES Users(Id) ON DELETE CASCADE
 );
 
 -- ============================================
--- TABLA EMPLOYEES
+-- TABLA EMPLOYEES (Id = User.Id para unificar identificador)
 -- ============================================
 CREATE TABLE Employees (
-    Id INT PRIMARY KEY IDENTITY(1,1),
+    Id INT NOT NULL PRIMARY KEY,
     FirstName NVARCHAR(100) NOT NULL,
     LastName NVARCHAR(100) NOT NULL,
     Email NVARCHAR(255) NOT NULL UNIQUE,
@@ -66,7 +67,8 @@ CREATE TABLE Employees (
     Rol NVARCHAR(50) NOT NULL DEFAULT 'employee',
     ProfileImageUrl NVARCHAR(500) NULL,
     HireDate DATE NULL,
-    IsActive BIT NOT NULL DEFAULT 1
+    IsActive BIT NOT NULL DEFAULT 1,
+    FOREIGN KEY (Id) REFERENCES Users(Id) ON DELETE CASCADE
 );
 
 -- ============================================
@@ -475,7 +477,7 @@ PRINT 'Base de datos ReservArteDB inicializada correctamente';
 -- DATOS INICIALES
 -- ============================================
 
--- USUARIOS (para autenticación)
+-- USUARIOS (para autenticación). Id 1=admin, 2-3=empleados, 4-6=clientes.
 INSERT INTO Users (FirstName, LastName, Email, Password, Rol, Phone) VALUES
 ('Guillermo', 'Admin', 'guille@svalero.com', '1234', 'admin', '+34600000001'),
 ('María', 'García', 'maria.garcia@reservarte.com', 'Maria123!', 'employee', '+34600000002'),
@@ -484,16 +486,22 @@ INSERT INTO Users (FirstName, LastName, Email, Password, Rol, Phone) VALUES
 ('Carmen', 'Rodríguez', 'carmen.rodriguez@email.com', 'Cliente123!', 'client', '+34600000005'),
 ('Isabel', 'Sánchez', 'isabel.sanchez@email.com', 'Cliente123!', 'client', '+34600000006');
 
--- EMPLOYEES (tabla independiente)
-INSERT INTO Employees (FirstName, LastName, Email, Phone, Rol, HireDate, IsActive) VALUES
-('María', 'García', 'maria.garcia@reservarte.com', '+34600000002', 'employee', '2023-01-15', 1),
-('Laura', 'Martínez', 'laura.martinez@reservarte.com', '+34600000003', 'employee', '2023-03-01', 1);
+-- EMPLOYEES: Id = User.Id (2=María, 3=Laura)
+INSERT INTO Employees (Id, FirstName, LastName, Email, Phone, Rol, HireDate, IsActive) VALUES
+(2, 'María', 'García', 'maria.garcia@reservarte.com', '+34600000002', 'employee', '2023-01-15', 1),
+(3, 'Laura', 'Martínez', 'laura.martinez@reservarte.com', '+34600000003', 'employee', '2023-03-01', 1);
 
--- CUSTOMERS (tabla independiente)
-INSERT INTO Customers (FirstName, LastName, Email, Phone, Rol, Category, LoyaltyPoints, PreferredContactMethod, MarketingConsent) VALUES
-('Ana', 'López', 'ana.lopez@email.com', '+34600000004', 'client', 'regular', 0, 'email', 1),
-('Carmen', 'Rodríguez', 'carmen.rodriguez@email.com', '+34600000005', 'client', 'vip', 150, 'whatsapp', 1),
-('Isabel', 'Sánchez', 'isabel.sanchez@email.com', '+34600000006', 'client', 'regular', 50, 'email', 0);
+-- CUSTOMERS: Id = User.Id (4=Ana, 5=Carmen, 6=Isabel)
+INSERT INTO Customers (Id, FirstName, LastName, Email, Phone, Rol, Category, LoyaltyPoints, PreferredContactMethod, MarketingConsent) VALUES
+(4, 'Ana', 'López', 'ana.lopez@email.com', '+34600000004', 'client', 'regular', 0, 'email', 1),
+(5, 'Carmen', 'Rodríguez', 'carmen.rodriguez@email.com', '+34600000005', 'client', 'vip', 150, 'whatsapp', 1),
+(6, 'Isabel', 'Sánchez', 'isabel.sanchez@email.com', '+34600000006', 'client', 'regular', 50, 'email', 0);
+
+-- CONSENTIMIENTOS: SavedCards concedido para clientes de prueba (permite guardar tarjetas)
+INSERT INTO CustomerConsents (CustomerId, ConsentType, IsGranted, GrantedAt) VALUES
+(4, 'SavedCards', 1, GETUTCDATE()),
+(5, 'SavedCards', 1, GETUTCDATE()),
+(6, 'SavedCards', 1, GETUTCDATE());
 
 -- CATEGORÍAS DE SERVICIOS
 INSERT INTO ServiceCategories (Name, Description, Color, DisplayOrder, IsActive) VALUES
@@ -531,37 +539,35 @@ INSERT INTO ServiceVariations (ServiceId, Name, PriceModifier, DurationModifier,
 (6, N'Hidratación estándar', 0, 0, 1),
 (6, N'Hidratación + secado', 5.00, 15, 1);
 
--- DISPONIBILIDAD EMPLEADOS
+-- DISPONIBILIDAD EMPLEADOS (EmployeeId 2=María, 3=Laura)
 INSERT INTO EmployeeAvailabilities (EmployeeId, DayOfWeek, StartTime, EndTime, IsRecurring) VALUES
-(1, 1, '09:00', '18:00', 1), -- María Lunes
-(1, 2, '09:00', '18:00', 1), -- María Martes
-(1, 3, '09:00', '18:00', 1), -- María Miércoles
-(1, 4, '09:00', '18:00', 1), -- María Jueves
-(1, 5, '09:00', '14:00', 1), -- María Viernes
-(2, 1, '10:00', '19:00', 1), -- Laura Lunes
-(2, 2, '10:00', '19:00', 1), -- Laura Martes
-(2, 3, '10:00', '19:00', 1), -- Laura Miércoles
-(2, 4, '10:00', '19:00', 1), -- Laura Jueves
-(2, 5, '10:00', '15:00', 1); -- Laura Viernes
+(2, 1, '09:00', '18:00', 1), -- María Lunes
+(2, 2, '09:00', '18:00', 1), -- María Martes
+(2, 3, '09:00', '18:00', 1), -- María Miércoles
+(2, 4, '09:00', '18:00', 1), -- María Jueves
+(2, 5, '09:00', '14:00', 1), -- María Viernes
+(3, 1, '10:00', '19:00', 1), -- Laura Lunes
+(3, 2, '10:00', '19:00', 1), -- Laura Martes
+(3, 3, '10:00', '19:00', 1), -- Laura Miércoles
+(3, 4, '10:00', '19:00', 1), -- Laura Jueves
+(3, 5, '10:00', '15:00', 1); -- Laura Viernes
 
 -- POLÍTICA DE CANCELACIÓN
 INSERT INTO CancellationPolicies (MinHoursBeforeCancel, PenaltyPercentage, MaxNoShowsBeforeBlock, VipMinHoursBeforeCancel, VipPenaltyPercentage, IsActive) VALUES
 (24, 50, 3, 12, 25, 1);
 
 -- CITAS (Appointments) - datos de ejemplo
--- Clientes: 1=Ana López, 2=Carmen Rodríguez, 3=Isabel Sánchez
--- Empleadas: 1=María García (Lun-Jue 09:00-18:00, Vie 09:00-14:00), 2=Laura Martínez (Lun-Jue 10:00-19:00, Vie 10:00-15:00)
--- Servicios: 1=Corte Mujer 25€/30min, 2=Corte Hombre 15€/20min, 3=Tinte 65€/120min, 4=Mechas 85€/150min, 5=Keratina 120€/180min, 6=Hidratación 35€/45min
--- Fechas en días laborables para coincidir con EmployeeAvailabilities
+-- Clientes: 4=Ana López, 5=Carmen Rodríguez, 6=Isabel Sánchez
+-- Empleadas: 2=María García, 3=Laura Martínez
 INSERT INTO Appointments (CustomerId, EmployeeId, AppointmentDate, StartTime, EndTime, Status, TotalPrice, DepositAmount, Notes) VALUES
-(1, 1, '2026-03-10', '10:00', '10:30', 'confirmed', 25.00, 0, N'Corte mujer - primera visita'),
-(2, 1, '2026-03-10', '11:00', '13:00', 'confirmed', 65.00, 20.00, N'Tinte completo'),
-(3, 2, '2026-03-10', '10:00', '10:20', 'pending', 15.00, 0, NULL),
-(1, 2, '2026-03-11', '12:00', '12:45', 'pending', 35.00, 0, N'Hidratación profunda'),
-(2, 1, '2026-03-11', '09:30', '10:00', 'pending', 25.00, 0, NULL),
-(3, 2, '2026-03-12', '16:00', '16:30', 'completed', 25.00, 0, N'Corte realizado'),
-(1, 1, '2026-03-12', '11:00', '13:30', 'completed', 85.00, 30.00, N'Mechas - cliente satisfecha'),
-(3, 1, '2026-03-13', '12:00', '12:20', 'cancelled', 15.00, 0, NULL);
+(4, 2, '2026-03-10', '10:00', '10:30', 'confirmed', 25.00, 0, N'Corte mujer - primera visita'),
+(5, 2, '2026-03-10', '11:00', '13:00', 'confirmed', 65.00, 20.00, N'Tinte completo'),
+(6, 3, '2026-03-10', '10:00', '10:20', 'pending', 15.00, 0, NULL),
+(4, 3, '2026-03-11', '12:00', '12:45', 'pending', 35.00, 0, N'Hidratación profunda'),
+(5, 2, '2026-03-11', '09:30', '10:00', 'pending', 25.00, 0, NULL),
+(6, 3, '2026-03-12', '16:00', '16:30', 'completed', 25.00, 0, N'Corte realizado'),
+(4, 2, '2026-03-12', '11:00', '13:30', 'completed', 85.00, 30.00, N'Mechas - cliente satisfecha'),
+(6, 2, '2026-03-13', '12:00', '12:20', 'cancelled', 15.00, 0, NULL);
 
 UPDATE Appointments SET CancellationReason = N'Cliente no pudo asistir', CancelledAt = GETUTCDATE(), CancelledByType = 'customer', UpdatedAt = GETUTCDATE() WHERE Id = 8;
 
@@ -576,14 +582,12 @@ INSERT INTO AppointmentServiceItems (AppointmentId, ServiceId, ServiceVariationI
 (7, 4, NULL, 85.00, 150, 1),
 (8, 2, NULL, 15.00, 20, 1);
 
--- PAGOS (Payments) - datos de ejemplo
--- RedsysOrderNumber debe ser único (UNIQUE); usamos valores distintos para cada pago
--- Citas: 1=Ana/María 25€ confirmed, 2=Carmen/María 65€ confirmed, 6=Isabel/Laura 25€ completed, 7=Ana/María 85€ completed
+-- PAGOS (Payments) - datos de ejemplo (CustomerId 4=Ana, 5=Carmen, 6=Isabel)
 INSERT INTO Payments (AppointmentId, CustomerId, Amount, Currency, PaymentMethodType, Status, RedsysOrderNumber, ProcessedAt) VALUES
-(1, 1, 25.00, 'EUR', 'card', 'captured', 'DEMO-PAY-001', GETUTCDATE()),
-(2, 2, 65.00, 'EUR', 'card', 'captured', 'DEMO-PAY-002', GETUTCDATE()),
-(6, 3, 25.00, 'EUR', 'cash', 'captured', 'DEMO-PAY-003', GETUTCDATE()),
-(7, 1, 85.00, 'EUR', 'card', 'captured', 'DEMO-PAY-004', GETUTCDATE());
+(1, 4, 25.00, 'EUR', 'card', 'captured', 'DEMO-PAY-001', GETUTCDATE()),
+(2, 5, 65.00, 'EUR', 'card', 'captured', 'DEMO-PAY-002', GETUTCDATE()),
+(6, 6, 25.00, 'EUR', 'cash', 'captured', 'DEMO-PAY-003', GETUTCDATE()),
+(7, 4, 85.00, 'EUR', 'card', 'captured', 'DEMO-PAY-004', GETUTCDATE());
 
 PRINT 'Verificando tablas creadas:';
 SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME;

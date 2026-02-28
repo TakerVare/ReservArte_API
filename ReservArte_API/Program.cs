@@ -123,6 +123,42 @@ builder.Services.AddAuthorizationBuilder()
                   
                   return userIdObj?.ToString() == userIdClaim;
               })
+    )
+    .AddPolicy("ClientOwnCustomer", policy =>
+        policy.RequireRole(Roles.Client)
+              .RequireAssertion(context =>
+              {
+                  var userIdClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                      ?? context.User.FindFirst("nameid")?.Value;
+                  if (string.IsNullOrEmpty(userIdClaim)) return false;
+
+                  var httpContext = context.Resource as Microsoft.AspNetCore.Http.HttpContext;
+                  var routeId = httpContext?.GetRouteData()?.Values["id"]?.ToString();
+                  if (string.IsNullOrEmpty(routeId)) return false;
+
+                  return routeId == userIdClaim;
+              })
+    )
+    // Admin/Employee pueden siempre; Client solo si id de ruta = su nameid (un solo [Authorize] con OR)
+    .AddPolicy("AdminOrEmployeeOrClientOwnCustomer", policy =>
+        policy.RequireAssertion(context =>
+        {
+            if (context.User.IsInRole(Roles.Admin) || context.User.IsInRole(Roles.Employee))
+                return true;
+
+            if (!context.User.IsInRole(Roles.Client))
+                return false;
+
+            var userIdClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? context.User.FindFirst("nameid")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return false;
+
+            var httpContext = context.Resource as Microsoft.AspNetCore.Http.HttpContext;
+            var routeId = httpContext?.GetRouteData()?.Values["id"]?.ToString();
+            if (string.IsNullOrEmpty(routeId)) return false;
+
+            return routeId == userIdClaim;
+        })
     );
 
 // Add services to the container.

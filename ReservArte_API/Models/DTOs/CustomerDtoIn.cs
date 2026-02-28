@@ -43,4 +43,7 @@ public class CustomerDtoIn
     public string PreferredContactMethod { get; set; } = ContactMethod.Email;
 
     public bool MarketingConsent { get; set; } = false;
+
+    /// <summary>Contraseña para el usuario (login). Opcional al crear desde back office; si no se indica se usa DefaultNewUserPassword.</summary>
+    public string? Password { get; set; }
 }
