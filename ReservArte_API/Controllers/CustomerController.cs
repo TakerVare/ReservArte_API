@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReservArte_API.Models;
@@ -131,8 +132,9 @@ public class CustomerController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        // Get employee ID from claims
-        var employeeIdClaim = User.FindFirst("id")?.Value;
+         // Get employee ID from claims (JWT usa NameIdentifier / "nameid", no "id")
+        var employeeIdClaim = User.FindFirst("id")?.Value
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(employeeIdClaim, out int employeeId))
         {
             return Unauthorized(new { message = "No se pudo identificar al empleado" });
