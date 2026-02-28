@@ -324,7 +324,7 @@ CREATE TABLE CustomerAllergies (
     Id INT PRIMARY KEY IDENTITY(1,1),
     CustomerId INT NOT NULL,
     AllergyDescription NVARCHAR(500) NOT NULL,
-    Severity NVARCHAR(50) NOT NULL CHECK (Severity IN ('mild', 'moderate', 'severe')),
+    Severity NVARCHAR(50) NOT NULL CHECK (Severity IN ('Low', 'Medium', 'High')),
     IsActive BIT NOT NULL DEFAULT 1,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     FOREIGN KEY (CustomerId) REFERENCES Customers(Id)
