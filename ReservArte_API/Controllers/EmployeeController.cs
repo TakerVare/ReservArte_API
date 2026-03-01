@@ -24,7 +24,6 @@ public class EmployeeController : ControllerBase
     /// Get all employees
     /// </summary>
     [HttpGet]
-    [Authorize(Roles = Roles.Admin)]
     public async Task<ActionResult<IEnumerable<EmployeeDtoOut>>> GetAll()
     {
         var employees = await _employeeService.GetAllAsync();
@@ -35,7 +34,6 @@ public class EmployeeController : ControllerBase
     /// Get employee by ID
     /// </summary>
     [HttpGet("{id}")]
-    [Authorize(Roles = Roles.Admin)]
     public async Task<ActionResult<EmployeeDtoOut>> GetById(int id)
     {
         var employee = await _employeeService.GetByIdAsync(id);
@@ -112,8 +110,6 @@ public class EmployeeController : ControllerBase
     /// Get employee availability schedule
     /// </summary>
     [HttpGet("{id}/availability")]
-    [Authorize(Roles = Roles.Admin)]
-    [Authorize(Roles = Roles.Employee)]
     public async Task<ActionResult<IEnumerable<EmployeeAvailabilityDto>>> GetAvailability(int id)
     {
         var availability = await _employeeService.GetAvailabilityByEmployeeIdAsync(id);
@@ -176,8 +172,6 @@ public class EmployeeController : ControllerBase
     /// Get employee exceptions (vacations, sick days, etc.)
     /// </summary>
     [HttpGet("{id}/exceptions")]
-    [Authorize(Roles = Roles.Admin)]
-    [Authorize(Roles = Roles.Employee)]
     public async Task<ActionResult<IEnumerable<EmployeeExceptionDto>>> GetExceptions(int id)
     {
         var exceptions = await _employeeService.GetExceptionsByEmployeeIdAsync(id);
@@ -240,8 +234,6 @@ public class EmployeeController : ControllerBase
     /// Get services assigned to an employee
     /// </summary>
     [HttpGet("{id}/services")]
-    [Authorize(Roles = Roles.Admin)]
-    [Authorize(Roles = Roles.Employee)]
     public async Task<ActionResult<IEnumerable<EmployeeServiceDto>>> GetServices(int id)
     {
         var services = await _employeeService.GetServicesByEmployeeIdAsync(id);
