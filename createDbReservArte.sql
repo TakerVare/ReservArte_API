@@ -474,7 +474,7 @@ CREATE TABLE ConfirmationTokens (
 PRINT 'Base de datos ReservArteDB inicializada correctamente';
 
 -- ============================================
--- DATOS INICIALES
+-- DATOS INICIALES (para pruebas)
 -- ============================================
 
 -- USUARIOS (para autenticación). Id 1=admin, 2-3=empleados, 4-6=clientes.
