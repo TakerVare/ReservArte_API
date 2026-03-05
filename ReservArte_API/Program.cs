@@ -184,8 +184,8 @@ builder.Services.AddAuthorizationBuilder()
 
             int resourceCustomerId = context.Resource switch
             {
-                Models.DTOs.AppointmentDtoOut dto => dto.CustomerId,
-                Models.Appointment apt => apt.CustomerId,
+                AppointmentDtoOut dto => dto.CustomerId,
+                Appointment apt => apt.CustomerId,
                 _ => 0
             };
             return resourceCustomerId != 0 && resourceCustomerId == currentUserId;
