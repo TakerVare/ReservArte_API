@@ -13,10 +13,14 @@ namespace ReservArte_API.Controllers;
 public class CustomerController : ControllerBase
 {
     private readonly ICustomerService _customerService;
+    private readonly IImageService _imageService;
+    private readonly ILogger<CustomerController> _logger;
 
-    public CustomerController(ICustomerService customerService)
+    public CustomerController(ICustomerService customerService, IImageService imageService, ILogger<CustomerController> logger)
     {
         _customerService = customerService;
+        _imageService = imageService;
+        _logger = logger;
     }
 
     #region Customer CRUD
@@ -479,6 +483,77 @@ public class CustomerController : ControllerBase
         }
 
         return Ok(new { message = "Categoría actualizada correctamente" });
+    }
+
+    #endregion
+
+    #region Profile Image
+
+    /// <summary>
+    /// Sube una imagen de perfil para un cliente.
+    /// </summary>
+    /// <param name="id">ID del cliente</param>
+    /// <param name="file">Archivo de imagen (JPEG, PNG, GIF, WebP)</param>
+    /// <returns>Datos del cliente actualizado con la URL de la imagen</returns>
+    [HttpPost("{id}/profile-image")]
+    [Consumes("multipart/form-data")]
+    [Authorize]
+    public async Task<IActionResult> UploadProfileImage(int id, IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "El archivo está vacío" });
+
+        // Validar que el cliente existe
+        var customer = await _customerService.GetByIdAsync(id);
+        if (customer == null)
+            return NotFound(new { message = "Cliente no encontrado" });
+
+        // Validar tipo de archivo
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType.ToLowerInvariant()))
+        {
+            return BadRequest(new { message = "Tipo de archivo no permitido. Use JPEG, PNG, GIF o WebP" });
+        }
+
+        // Validar tamaño máximo (5MB para fotos de perfil)
+        const long maxFileSize = 5 * 1024 * 1024;
+        if (file.Length > maxFileSize)
+        {
+            return BadRequest(new { message = "El archivo es demasiado grande. Máximo 5MB" });
+        }
+
+        _logger.LogInformation($"Cargando foto de perfil para cliente {id}: {file.FileName} - Tamaño: {file.Length} bytes");
+
+        try
+        {
+            var imageUrl = await _imageService.UploadImageAsync(file);
+
+            if (string.IsNullOrEmpty(imageUrl))
+            {
+                _logger.LogError($"Error al cargar foto de perfil para cliente {id}");
+                return BadRequest(new { message = "Error al cargar la imagen" });
+            }
+
+            // Actualizar el perfil del cliente con la nueva URL de imagen
+            var updatedCustomer = await _customerService.UpdateProfileImageAsync(id, imageUrl);
+            if (updatedCustomer == null)
+            {
+                _logger.LogError($"Error al actualizar perfil del cliente {id}");
+                return BadRequest(new { message = "Error al actualizar el perfil del cliente" });
+            }
+
+            _logger.LogInformation($"Foto de perfil cargada exitosamente para cliente {id}: {imageUrl}");
+            return Ok(new 
+            { 
+                message = "Foto de perfil cargada exitosamente",
+                customer = updatedCustomer
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Excepción al cargar foto de perfil para cliente {id}: {ex.Message}");
+            return StatusCode(500, new { message = "Error interno al procesar la imagen", error = ex.Message });
+        }
     }
 
     #endregion

@@ -73,4 +73,10 @@ public interface ICustomerService
     Task<bool> UpdateCategoryAsync(int customerId, string category);
     
     #endregion
+
+    #region Profile Image
+    
+    Task<CustomerDtoOut?> UpdateProfileImageAsync(int customerId, string imageUrl);
+    
+    #endregion
 }

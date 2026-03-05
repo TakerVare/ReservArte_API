@@ -36,6 +36,8 @@ builder.Services.AddCors(options =>
     });
 });
 
+var connectionString = builder.Configuration.GetConnectionString("ReservArteDB");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opt =>
     {
@@ -51,8 +53,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-var connectionString = builder.Configuration.GetConnectionString("ReservArteDB");
-
 // Configuración de Redsys
 builder.Services.Configure<RedsysSettings>(builder.Configuration.GetSection(RedsysSettings.SectionName));
 
@@ -67,6 +67,7 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddScoped<IWaitingListService, WaitingListService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IImageService, CloudinaryImageService>();
 
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
