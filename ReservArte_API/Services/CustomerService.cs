@@ -382,6 +382,22 @@ public class CustomerService : ICustomerService
 
     #endregion
 
+    #region Profile Image
+
+    public async Task<CustomerDtoOut?> UpdateProfileImageAsync(int customerId, string imageUrl)
+    {
+        var customer = await _repository.GetByIdAsync(customerId);
+        if (customer == null) return null;
+
+        customer.ProfileImageUrl = imageUrl;
+        var updated = await _repository.UpdateAsync(customerId, customer);
+        if (updated == null) return null;
+
+        return MapToCustomerDtoOut(updated);
+    }
+
+    #endregion
+
     #region Private Helpers
 
     private async Task CheckAndUpdateCategoryAsync(int customerId)

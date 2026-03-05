@@ -24,6 +24,7 @@ public class CustomerListDtoOut
     public string FullName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? Phone { get; set; }
+    public string? ProfileImageUrl { get; set; }
     public string Category { get; set; } = string.Empty;
     public int LoyaltyPoints { get; set; }
     public bool IsBlocked { get; set; }
