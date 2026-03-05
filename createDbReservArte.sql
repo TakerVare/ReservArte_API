@@ -587,6 +587,21 @@ INSERT INTO Payments (AppointmentId, CustomerId, Amount, Currency, PaymentMethod
 (6, 6, 25.00, 'EUR', 'cash', 'captured', 'DEMO-PAY-003', GETUTCDATE()),
 (7, 4, 85.00, 'EUR', 'card', 'captured', 'DEMO-PAY-004', GETUTCDATE());
 
+-- Asignar todos los servicios a ambas empleadas
+INSERT INTO EmployeeServices (EmployeeId, ServiceId, ProficiencyLevel, IsActive) VALUES
+(2, 1, 3, 1), -- María - Corte Mujer
+(2, 2, 3, 1), -- María - Corte Hombre
+(2, 3, 3, 1), -- María - Tinte Completo
+(2, 4, 3, 1), -- María - Mechas
+(2, 5, 3, 1), -- María - Tratamiento Keratina
+(2, 6, 3, 1), -- María - Hidratación Profunda
+(3, 1, 3, 1), -- Laura - Corte Mujer
+(3, 2, 3, 1), -- Laura - Corte Hombre
+(3, 3, 3, 1), -- Laura - Tinte Completo
+(3, 4, 3, 1), -- Laura - Mechas
+(3, 5, 3, 1), -- Laura - Tratamiento Keratina
+(3, 6, 3, 1); -- Laura - Hidratación Profunda
+
 PRINT 'Verificando tablas creadas:';
 SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME;
 
