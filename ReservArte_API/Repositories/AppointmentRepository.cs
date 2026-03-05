@@ -26,8 +26,8 @@ public class AppointmentRepository : IAppointmentRepository
                      StartTime, EndTime, Status, TotalPrice, DepositAmount,
                      RedsysOrderNumber, RedsysPreAuthToken, PaymentMethodId,
                      CancellationReason, CancelledAt, CancelledById, CancelledByType,
-                     Notes, CreatedAt, UpdatedAt
-                     FROM Appointments WHERE Id = @Id";
+                     Notes, CreatedAt, UpdatedAt, IsActive
+                     FROM Appointments WHERE Id = @Id and IsActive = true";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);

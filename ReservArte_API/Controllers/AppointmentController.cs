@@ -24,7 +24,7 @@ public class AppointmentController : ControllerBase
     /// Obtiene todas las citas
     /// </summary>
     [HttpGet]
-    [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Employee},{Roles.Client}")]
     public async Task<ActionResult<IEnumerable<AppointmentDtoToList>>> GetAll()
     {
         var appointments = await _appointmentService.GetAllAsync();
@@ -103,7 +103,7 @@ public class AppointmentController : ControllerBase
     /// Obtiene la agenda según los filtros especificados
     /// </summary>
     [HttpGet("agenda")]
-    [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Employee},{Roles.Client}")]
     public async Task<ActionResult<AgendaResponseDto>> GetAgenda([FromQuery] AgendaQueryDto query)
     {
         try
