@@ -432,7 +432,7 @@ public class AppointmentRepository : IAppointmentRepository
                      INNER JOIN Customers c ON a.CustomerId = c.Id
                      INNER JOIN Employees e ON a.EmployeeId = e.Id
                      WHERE {whereClause}
-                     ORDER BY a.AppointmentDate DESC, a.StartTime";
+                     ORDER BY a.AppointmentDate ASC, a.StartTime ASC";
 
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@CustomerId", customerId);
