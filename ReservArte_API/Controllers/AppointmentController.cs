@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReservArte_API.Models;
@@ -12,10 +13,18 @@ namespace ReservArte_API.Controllers;
 public class AppointmentController : ControllerBase
 {
     private readonly IAppointmentService _appointmentService;
+    private readonly IAuthorizationService _authorizationService;
 
-    public AppointmentController(IAppointmentService appointmentService)
+    public AppointmentController(IAppointmentService appointmentService, IAuthorizationService authorizationService)
     {
         _appointmentService = appointmentService;
+        _authorizationService = authorizationService;
+    }
+
+    private int? GetCurrentUserId()
+    {
+        var value = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("nameid")?.Value;
+        return int.TryParse(value, out var id) ? id : null;
     }
 
     #region CRUD Básico
@@ -32,7 +41,7 @@ public class AppointmentController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene una cita por ID
+    /// Obtiene una cita por ID. Admin/Employee: cualquier cita. Client: solo la propia (CustomerId == usuario actual).
     /// </summary>
     [HttpGet("{id}")]
     public async Task<ActionResult<AppointmentDtoOut>> GetById(int id)
@@ -41,6 +50,11 @@ public class AppointmentController : ControllerBase
         if (appointment == null)
         {
             return NotFound(new { message = "Cita no encontrada" });
+        }
+        var authResult = await _authorizationService.AuthorizeAsync(User, appointment, "AdminOrEmployeeOrAppointmentOwner");
+        if (!authResult.Succeeded)
+        {
+            return Forbid();
         }
         return Ok(appointment);
     }
@@ -66,12 +80,21 @@ public class AppointmentController : ControllerBase
     }
 
     /// <summary>
-    /// Actualiza una cita existente
+    /// Actualiza una cita existente. Admin/Employee: cualquier cita. Client: solo la propia (CustomerId == usuario actual).
     /// </summary>
     [HttpPut("{id}")]
-    [Authorize(Roles = $"{Roles.Admin},{Roles.Employee}")]
     public async Task<ActionResult<Appointment>> Update(int id, [FromBody] Appointment appointment)
     {
+        var existing = await _appointmentService.GetByIdDetailedAsync(id);
+        if (existing == null)
+        {
+            return NotFound(new { message = "Cita no encontrada" });
+        }
+        var authResult = await _authorizationService.AuthorizeAsync(User, existing, "AdminOrEmployeeOrAppointmentOwner");
+        if (!authResult.Succeeded)
+        {
+            return Forbid();
+        }
         var updated = await _appointmentService.UpdateAsync(id, appointment);
         if (updated == null)
         {
@@ -142,12 +165,21 @@ public class AppointmentController : ControllerBase
 
     /// <summary>
     /// Obtiene las citas de un cliente. Filtros opcionales vía query: startDate, endDate, status, employeeId, servicesDescription.
+    /// Admin/Employee: cualquier cliente. Client: solo sus propias citas (customerId debe ser el usuario actual).
     /// </summary>
     [HttpGet("customer/{customerId}")]
     public async Task<ActionResult<IEnumerable<AgendaAppointmentDto>>> GetByCustomer(
         int customerId,
         [FromQuery] CustomerAppointmentsQueryDto? query = null)
     {
+        if (User.IsInRole(Roles.Client))
+        {
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue || currentUserId.Value != customerId)
+            {
+                return Forbid();
+            }
+        }
         var appointments = await _appointmentService.GetByCustomerIdAsync(customerId, query);
         return Ok(appointments);
     }
@@ -212,11 +244,17 @@ public class AppointmentController : ControllerBase
     }
 
     /// <summary>
-    /// Cancela una cita
+    /// Cancela una cita. Admin/Employee: cualquier cita. Client: solo la propia.
     /// </summary>
     [HttpPut("{id}/cancel")]
     public async Task<ActionResult<AppointmentCancelResultDto>> Cancel(int id, [FromBody] AppointmentCancelDto dto)
     {
+        var existing = await _appointmentService.GetByIdDetailedAsync(id);
+        if (existing == null)
+            return NotFound(new { message = "Cita no encontrada" });
+        var authResult = await _authorizationService.AuthorizeAsync(User, existing, "AdminOrEmployeeOrAppointmentOwner");
+        if (!authResult.Succeeded)
+            return Forbid();
         try
         {
             if (!ModelState.IsValid)
@@ -232,11 +270,17 @@ public class AppointmentController : ControllerBase
     }
 
     /// <summary>
-    /// Reagenda una cita
+    /// Reagenda una cita. Admin/Employee: cualquier cita. Client: solo la propia.
     /// </summary>
     [HttpPut("{id}/reschedule")]
     public async Task<ActionResult<AppointmentDtoOut>> Reschedule(int id, [FromBody] AppointmentRescheduleDto dto)
     {
+        var existing = await _appointmentService.GetByIdDetailedAsync(id);
+        if (existing == null)
+            return NotFound(new { message = "Cita no encontrada" });
+        var authResult = await _authorizationService.AuthorizeAsync(User, existing, "AdminOrEmployeeOrAppointmentOwner");
+        if (!authResult.Succeeded)
+            return Forbid();
         try
         {
             if (!ModelState.IsValid)
@@ -297,11 +341,17 @@ public class AppointmentController : ControllerBase
     }
 
     /// <summary>
-    /// Calcula la penalización por cancelación
+    /// Calcula la penalización por cancelación. Admin/Employee: cualquier cita. Client: solo la propia.
     /// </summary>
     [HttpGet("{id}/penalty")]
     public async Task<ActionResult<object>> GetPenalty(int id)
     {
+        var existing = await _appointmentService.GetByIdDetailedAsync(id);
+        if (existing == null)
+            return NotFound(new { message = "Cita no encontrada" });
+        var authResult = await _authorizationService.AuthorizeAsync(User, existing, "AdminOrEmployeeOrAppointmentOwner");
+        if (!authResult.Succeeded)
+            return Forbid();
         try
         {
             var penalty = await _appointmentService.CalculatePenaltyAsync(id);

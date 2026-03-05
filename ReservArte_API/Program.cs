@@ -166,6 +166,30 @@ builder.Services.AddAuthorizationBuilder()
 
             return routeId == userIdClaim;
         })
+    )
+    // Admin/Employee pueden siempre; Client solo si es propietario de la cita (appointment.CustomerId == currentUserId)
+    .AddPolicy("AdminOrEmployeeOrAppointmentOwner", policy =>
+        policy.RequireAssertion(context =>
+        {
+            if (context.User.IsInRole(Roles.Admin) || context.User.IsInRole(Roles.Employee))
+                return true;
+
+            if (!context.User.IsInRole(Roles.Client))
+                return false;
+
+            var userIdClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? context.User.FindFirst("nameid")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int currentUserId))
+                return false;
+
+            int resourceCustomerId = context.Resource switch
+            {
+                Models.DTOs.AppointmentDtoOut dto => dto.CustomerId,
+                Models.Appointment apt => apt.CustomerId,
+                _ => 0
+            };
+            return resourceCustomerId != 0 && resourceCustomerId == currentUserId;
+        })
     );
 
 // Add services to the container.
