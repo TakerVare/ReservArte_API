@@ -307,9 +307,9 @@ public class AppointmentService : IAppointmentService
         if (!Status.IsCancellable(appointment.Status))
             throw new InvalidOperationException("La cita no se puede cancelar en su estado actual");
 
-        // Validar tipo de quien cancela
-        if (!CancelledByType.IsValid(dto.CancelledByType))
-            throw new InvalidOperationException("Tipo de cancelación inválido");
+        // Validar tipo de quien cancela: solo CancelledByCustomer (Customer) o CancelledByBusiness (Employee)
+        if (!CancelledByType.IsValidForCancellation(dto.CancelledByType))
+            throw new InvalidOperationException("Tipo de cancelación inválido. Solo se aceptan: Customer (cancelación por cliente) o Employee (cancelación por negocio).");
 
         // Calcular penalización
         var (penaltyApplied, penaltyAmount, penaltyPercentage) = 
@@ -505,7 +505,7 @@ public class AppointmentService : IAppointmentService
             items.Add(new AppointmentServiceItem
             {
                 ServiceId = serviceDto.ServiceId,
-                ServiceVariationId = serviceDto.ServiceVariationId,
+                ServiceVariationId = serviceDto.ServiceVariationId == 0 ? null : serviceDto.ServiceVariationId,
                 Price = price,
                 DurationMinutes = duration,
                 Order = order++

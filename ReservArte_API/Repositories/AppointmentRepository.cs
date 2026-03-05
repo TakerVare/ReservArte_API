@@ -17,20 +17,26 @@ public class AppointmentRepository : IAppointmentRepository
 
     #region CRUD Básico
 
-    public async Task<Appointment?> GetByIdAsync(int id)
+    public async Task<Appointment?> GetByIdAsync(int id, bool? isActive = true)
     {
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT Id, CustomerId, EmployeeId, AppointmentDate, 
+        var whereClause = "Id = @Id";
+        if (isActive.HasValue)
+            whereClause += " AND IsActive = @IsActive";
+        
+        var query = $@"SELECT Id, CustomerId, EmployeeId, AppointmentDate, 
                      StartTime, EndTime, Status, TotalPrice, DepositAmount,
                      RedsysOrderNumber, RedsysPreAuthToken, PaymentMethodId,
                      CancellationReason, CancelledAt, CancelledById, CancelledByType,
                      Notes, CreatedAt, UpdatedAt, IsActive
-                     FROM Appointments WHERE Id = @Id and IsActive = true";
+                     FROM Appointments WHERE {whereClause}";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);
+        if (isActive.HasValue)
+            command.Parameters.AddWithValue("@IsActive", isActive.Value ? 1 : 0);
         
         using var reader = await command.ExecuteReaderAsync();
         if (await reader.ReadAsync())
@@ -41,12 +47,16 @@ public class AppointmentRepository : IAppointmentRepository
         return null;
     }
 
-    public async Task<AppointmentDtoOut?> GetByIdDetailedAsync(int id)
+    public async Task<AppointmentDtoOut?> GetByIdDetailedAsync(int id, bool? isActive = true)
     {
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT a.Id, a.CustomerId, a.EmployeeId, a.AppointmentDate, 
+        var whereClause = "a.Id = @Id";
+        if (isActive.HasValue)
+            whereClause += " AND a.IsActive = @IsActive";
+        
+        var query = $@"SELECT a.Id, a.CustomerId, a.EmployeeId, a.AppointmentDate, 
                      a.StartTime, a.EndTime, a.Status, a.TotalPrice, a.DepositAmount,
                      a.RedsysOrderNumber, a.RedsysPreAuthToken, a.PaymentMethodId,
                      a.CancellationReason, a.CancelledAt, a.CancelledById, a.CancelledByType,
@@ -58,10 +68,12 @@ public class AppointmentRepository : IAppointmentRepository
                      INNER JOIN Customers c ON a.CustomerId = c.Id
                      INNER JOIN Employees e ON a.EmployeeId = e.Id
                      LEFT JOIN CustomerPaymentMethods pm ON a.PaymentMethodId = pm.Id
-                     WHERE a.Id = @Id";
+                     WHERE {whereClause}";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@Id", id);
+        if (isActive.HasValue)
+            command.Parameters.AddWithValue("@IsActive", isActive.Value ? 1 : 0);
         
         using var reader = await command.ExecuteReaderAsync();
         if (await reader.ReadAsync())
@@ -227,19 +239,23 @@ public class AppointmentRepository : IAppointmentRepository
 
     #region Consultas de Agenda
 
-    public async Task<IEnumerable<AppointmentDtoToList>> GetAllAsync()
+    public async Task<IEnumerable<AppointmentDtoToList>> GetAllAsync(bool? isActive = true)
     {
         var appointments = new List<AppointmentDtoToList>();
         
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT a.Id, a.CustomerId, a.EmployeeId, a.AppointmentDate, 
+        var whereClause = isActive.HasValue ? "WHERE a.IsActive = @IsActive" : "";
+        var query = $@"SELECT a.Id, a.CustomerId, a.EmployeeId, a.AppointmentDate, 
                      a.StartTime, a.EndTime, a.Status
                      FROM Appointments a
+                     {whereClause}
                      ORDER BY a.AppointmentDate DESC, a.StartTime";
         
         using var command = new SqlCommand(query, connection);
+        if (isActive.HasValue)
+            command.Parameters.AddWithValue("@IsActive", isActive.Value ? 1 : 0);
         using var reader = await command.ExecuteReaderAsync();
         
         while (await reader.ReadAsync())
@@ -259,21 +275,26 @@ public class AppointmentRepository : IAppointmentRepository
         return appointments;
     }
 
-    public async Task<IEnumerable<AppointmentDtoToList>> GetByUserIdAsync(int userId)
+    public async Task<IEnumerable<AppointmentDtoToList>> GetByUserIdAsync(int userId, bool? isActive = true)
     {
         var appointments = new List<AppointmentDtoToList>();
         
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT a.Id, a.CustomerId, a.EmployeeId, a.AppointmentDate, 
+        var whereClause = "a.CustomerId = @UserId";
+        if (isActive.HasValue)
+            whereClause += " AND a.IsActive = @IsActive";
+        var query = $@"SELECT a.Id, a.CustomerId, a.EmployeeId, a.AppointmentDate, 
                      a.StartTime, a.EndTime, a.Status
                      FROM Appointments a 
-                     WHERE a.CustomerId = @UserId
+                     WHERE {whereClause}
                      ORDER BY a.AppointmentDate DESC, a.StartTime";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@UserId", userId);
+        if (isActive.HasValue)
+            command.Parameters.AddWithValue("@IsActive", isActive.Value ? 1 : 0);
         
         using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -293,27 +314,31 @@ public class AppointmentRepository : IAppointmentRepository
         return appointments;
     }
 
-    public async Task<IEnumerable<AgendaAppointmentDto>> GetByDateRangeAsync(DateOnly startDate, DateOnly endDate)
+    public async Task<IEnumerable<AgendaAppointmentDto>> GetByDateRangeAsync(DateOnly startDate, DateOnly endDate, bool? isActive = true)
     {
         var appointments = new List<AgendaAppointmentDto>();
         
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT a.Id, a.AppointmentDate, a.StartTime, a.EndTime,
+        var whereClause = "a.AppointmentDate >= @StartDate AND a.AppointmentDate <= @EndDate";
+        if (isActive.HasValue)
+            whereClause += " AND a.IsActive = @IsActive";
+        var query = $@"SELECT a.Id, a.AppointmentDate, a.StartTime, a.EndTime,
                      a.CustomerId, c.FirstName + ' ' + c.LastName as CustomerName, c.Category as CustomerCategory,
                      a.EmployeeId, e.FirstName + ' ' + e.LastName as EmployeeName,
                      a.Status, a.TotalPrice, a.Notes
                      FROM Appointments a
                      INNER JOIN Customers c ON a.CustomerId = c.Id
                      INNER JOIN Employees e ON a.EmployeeId = e.Id
-                     WHERE a.AppointmentDate >= @StartDate
-                     AND a.AppointmentDate <= @EndDate
+                     WHERE {whereClause}
                      ORDER BY a.AppointmentDate, a.StartTime";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@StartDate", startDate.ToDateTime(TimeOnly.MinValue));
         command.Parameters.AddWithValue("@EndDate", endDate.ToDateTime(TimeOnly.MaxValue));
+        if (isActive.HasValue)
+            command.Parameters.AddWithValue("@IsActive", isActive.Value ? 1 : 0);
         
         using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -334,29 +359,32 @@ public class AppointmentRepository : IAppointmentRepository
         return appointments;
     }
 
-    public async Task<IEnumerable<AgendaAppointmentDto>> GetByEmployeeAsync(int employeeId, DateOnly startDate, DateOnly endDate)
+    public async Task<IEnumerable<AgendaAppointmentDto>> GetByEmployeeAsync(int employeeId, DateOnly startDate, DateOnly endDate, bool? isActive = true)
     {
         var appointments = new List<AgendaAppointmentDto>();
         
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT a.Id, a.AppointmentDate, a.StartTime, a.EndTime,
+        var whereClause = "a.EmployeeId = @EmployeeId AND a.AppointmentDate >= @StartDate AND a.AppointmentDate <= @EndDate";
+        if (isActive.HasValue)
+            whereClause += " AND a.IsActive = @IsActive";
+        var query = $@"SELECT a.Id, a.AppointmentDate, a.StartTime, a.EndTime,
                      a.CustomerId, c.FirstName + ' ' + c.LastName as CustomerName, c.Category as CustomerCategory,
                      a.EmployeeId, e.FirstName + ' ' + e.LastName as EmployeeName,
                      a.Status, a.TotalPrice, a.Notes
                      FROM Appointments a
                      INNER JOIN Customers c ON a.CustomerId = c.Id
                      INNER JOIN Employees e ON a.EmployeeId = e.Id
-                     WHERE a.EmployeeId = @EmployeeId
-                     AND a.AppointmentDate >= @StartDate
-                     AND a.AppointmentDate <= @EndDate
+                     WHERE {whereClause}
                      ORDER BY a.AppointmentDate, a.StartTime";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@EmployeeId", employeeId);
         command.Parameters.AddWithValue("@StartDate", startDate.ToDateTime(TimeOnly.MinValue));
         command.Parameters.AddWithValue("@EndDate", endDate.ToDateTime(TimeOnly.MaxValue));
+        if (isActive.HasValue)
+            command.Parameters.AddWithValue("@IsActive", isActive.Value ? 1 : 0);
         
         using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -391,6 +419,9 @@ public class AppointmentRepository : IAppointmentRepository
             conditions.Add("a.Status = @Status");
         if (filter?.EmployeeId.HasValue == true)
             conditions.Add("a.EmployeeId = @EmployeeId");
+        // IsActive: por defecto true (solo activas). null en el filtro = true; si viene false, solo inactivas; si viene true, solo activas.
+        var isActiveFilter = filter?.IsActive ?? true;
+        conditions.Add("a.IsActive = @IsActive");
 
         var whereClause = string.Join(" AND ", conditions);
         var query = $@"SELECT a.Id, a.AppointmentDate, a.StartTime, a.EndTime,
@@ -413,6 +444,7 @@ public class AppointmentRepository : IAppointmentRepository
             command.Parameters.AddWithValue("@Status", filter.Status!);
         if (filter?.EmployeeId.HasValue == true)
             command.Parameters.AddWithValue("@EmployeeId", filter.EmployeeId!.Value);
+        command.Parameters.AddWithValue("@IsActive", isActiveFilter ? 1 : 0);
 
         using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -444,30 +476,34 @@ public class AppointmentRepository : IAppointmentRepository
     /// Obtiene citas cuya fecha/hora de inicio esté dentro de la ventana [from, to].
     /// Solo devuelve citas con estado activo (pending, confirmed) para envío de recordatorios.
     /// </summary>
-    public async Task<IEnumerable<Appointment>> GetAppointmentsInDateTimeWindowAsync(DateTime from, DateTime to)
+    public async Task<IEnumerable<Appointment>> GetAppointmentsInDateTimeWindowAsync(DateTime from, DateTime to, bool? isActive = true)
     {
         var appointments = new List<Appointment>();
         
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        // Combina AppointmentDate + StartTime y filtra los que estén en la ventana [from, to]
-        // Solo incluye citas en estado "pending" o "confirmed" (activas)
-        var query = @"SELECT Id, CustomerId, EmployeeId, AppointmentDate, 
+        var whereClause = @"Status IN (@StatusPending, @StatusConfirmed)
+                     AND CAST(AppointmentDate AS DATETIME) + CAST(StartTime AS DATETIME) >= @From
+                     AND CAST(AppointmentDate AS DATETIME) + CAST(StartTime AS DATETIME) <= @To";
+        if (isActive.HasValue)
+            whereClause += " AND IsActive = @IsActive";
+        
+        var query = $@"SELECT Id, CustomerId, EmployeeId, AppointmentDate, 
                      StartTime, EndTime, Status, TotalPrice, DepositAmount,
                      RedsysOrderNumber, RedsysPreAuthToken, PaymentMethodId,
                      CancellationReason, CancelledAt, CancelledById, CancelledByType,
                      Notes, CreatedAt, UpdatedAt
                      FROM Appointments 
-                     WHERE Status IN (@StatusPending, @StatusConfirmed)
-                     AND CAST(AppointmentDate AS DATETIME) + CAST(StartTime AS DATETIME) >= @From
-                     AND CAST(AppointmentDate AS DATETIME) + CAST(StartTime AS DATETIME) <= @To";
+                     WHERE {whereClause}";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@StatusPending", Status.Pending);
         command.Parameters.AddWithValue("@StatusConfirmed", Status.Confirmed);
         command.Parameters.AddWithValue("@From", from);
         command.Parameters.AddWithValue("@To", to);
+        if (isActive.HasValue)
+            command.Parameters.AddWithValue("@IsActive", isActive.Value ? 1 : 0);
         
         using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -490,6 +526,7 @@ public class AppointmentRepository : IAppointmentRepository
         var query = @"SELECT COUNT(1) FROM Appointments 
                      WHERE EmployeeId = @EmployeeId
                      AND AppointmentDate = @Date
+                     AND IsActive = 1
                      AND Status NOT IN ('cancelled', 'cancelled_by_customer', 'cancelled_by_business', 'no_show')
                      AND (
                          (@StartTime >= StartTime AND @StartTime < EndTime)
@@ -517,17 +554,21 @@ public class AppointmentRepository : IAppointmentRepository
         return count > 0;
     }
 
-    public async Task<int> GetCustomerNoShowCountAsync(int customerId)
+    public async Task<int> GetCustomerNoShowCountAsync(int customerId, bool? isActive = true)
     {
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var query = @"SELECT COUNT(1) FROM Appointments 
-                     WHERE CustomerId = @CustomerId 
-                     AND Status = 'no_show'";
+        var whereClause = "CustomerId = @CustomerId AND Status = 'no_show'";
+        if (isActive.HasValue)
+            whereClause += " AND IsActive = @IsActive";
+        var query = $@"SELECT COUNT(1) FROM Appointments 
+                     WHERE {whereClause}";
         
         using var command = new SqlCommand(query, connection);
         command.Parameters.AddWithValue("@CustomerId", customerId);
+        if (isActive.HasValue)
+            command.Parameters.AddWithValue("@IsActive", isActive.Value ? 1 : 0);
         
         return (int)(await command.ExecuteScalarAsync() ?? 0);
     }
@@ -541,9 +582,13 @@ public class AppointmentRepository : IAppointmentRepository
         using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
         
+        // IsActive = false para estados finales (completed, cancelled, no_show); true para pending, confirmed, in_progress
+        var isActive = Status.Final.Contains(status) ? 0 : 1;
+        
         var query = @"UPDATE Appointments SET 
                      Status = @Status, 
                      Notes = CASE WHEN @Notes IS NOT NULL THEN @Notes ELSE Notes END,
+                     IsActive = @IsActive,
                      UpdatedAt = @UpdatedAt
                      WHERE Id = @Id";
         
@@ -551,6 +596,7 @@ public class AppointmentRepository : IAppointmentRepository
         command.Parameters.AddWithValue("@Id", id);
         command.Parameters.AddWithValue("@Status", status);
         command.Parameters.AddWithValue("@Notes", (object?)notes ?? DBNull.Value);
+        command.Parameters.AddWithValue("@IsActive", isActive);
         command.Parameters.AddWithValue("@UpdatedAt", DateTime.UtcNow);
         
         var rowsAffected = await command.ExecuteNonQueryAsync();
@@ -572,6 +618,7 @@ public class AppointmentRepository : IAppointmentRepository
                      CancelledAt = @CancelledAt,
                      CancelledById = @CancelledById,
                      CancelledByType = @CancelledByType,
+                     IsActive = 0,
                      UpdatedAt = @UpdatedAt
                      WHERE Id = @Id";
         

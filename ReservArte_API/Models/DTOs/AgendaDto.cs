@@ -52,6 +52,8 @@ public class CustomerAppointmentsQueryDto
     public int? EmployeeId { get; set; }
     /// <summary>Texto a buscar en la descripción de servicios (opcional)</summary>
     public string? ServicesDescription { get; set; }
+    /// <summary>Filtrar por citas activas (true), inactivas (false) o todas (null). Por defecto true.</summary>
+    public bool? IsActive { get; set; }
 }
 
 /// <summary>

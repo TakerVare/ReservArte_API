@@ -41,7 +41,8 @@ public class AppointmentCancelDto
     public int CancelledById { get; set; }
     
     /// <summary>
-    /// Tipo de quien cancela: Customer, Employee
+    /// Tipo de quien cancela: Customer (cancelación por cliente → cancelled_by_customer) o Employee (cancelación por negocio → cancelled_by_business).
+    /// Solo se aceptan estos dos valores.
     /// </summary>
     [Required]
     public string CancelledByType { get; set; } = string.Empty;
