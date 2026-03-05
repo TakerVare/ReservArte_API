@@ -503,41 +503,39 @@ INSERT INTO CustomerConsents (CustomerId, ConsentType, IsGranted, GrantedAt) VAL
 (5, 'SavedCards', 1, GETUTCDATE()),
 (6, 'SavedCards', 1, GETUTCDATE());
 
--- CATEGORÍAS DE SERVICIOS
+-- CATEGORÍA DE SERVICIOS: solo Diseño de cejas (todos los servicios ofertados son de este tipo)
 INSERT INTO ServiceCategories (Name, Description, Color, DisplayOrder, IsActive) VALUES
-('Corte', 'Servicios de corte de cabello', '#FF6B6B', 1, 1),
-('Color', 'Tintes y coloración', '#4ECDC4', 2, 1),
-('Tratamientos', 'Tratamientos capilares', '#95E1D3', 3, 1);
+('Diseño de cejas', 'Servicios de diseño, perfilado y tratamiento de cejas', '#E8B4BC', 1, 1);
 
--- SERVICIOS
+-- SERVICIOS: todos de diseño de cejas, duración 45 minutos
 INSERT INTO Services (Name, Description, DurationMinutes, BasePrice, CategoryId, IsActive, RequiresAllergyTest) VALUES
-('Corte Mujer', 'Corte de cabello para mujer', 30, 25.00, 1, 1, 0),
-('Corte Hombre', 'Corte de cabello para hombre', 20, 15.00, 1, 1, 0),
-('Tinte Completo', 'Coloración completa del cabello', 120, 65.00, 2, 1, 1),
-('Mechas', 'Mechas californianas o balayage', 150, 85.00, 2, 1, 1),
-('Tratamiento Keratina', 'Tratamiento alisador de keratina', 180, 120.00, 3, 1, 0),
-('Hidratación Profunda', 'Mascarilla hidratante intensiva', 45, 35.00, 3, 1, 0);
+('Diseño de cejas clásico', 'Perfilado y diseño de cejas con pinza y cera', 45, 18.00, 1, 1, 0),
+('Diseño de cejas con tinte', 'Diseño y tinte de cejas para definir y dar color', 45, 22.00, 1, 1, 1),
+('Laminado de cejas', 'Tratamiento para fijar y dar forma al vello de las cejas', 45, 25.00, 1, 1, 0),
+('Diseño + henna cejas', 'Diseño de cejas con aplicación de henna', 45, 20.00, 1, 1, 0),
+('Microblading simulación', 'Diseño y relleno con efecto microblading (no permanente)', 45, 28.00, 1, 1, 0),
+('Diseño de cejas premium', 'Diseño completo con limpieza y acabado profesional', 45, 30.00, 1, 1, 0);
 
--- VARIACIONES DE SERVICIOS (ServiceVariations)
--- ServiceId: 1=Corte Mujer, 2=Corte Hombre, 3=Tinte Completo, 4=Mechas, 5=Tratamiento Keratina, 6=Hidratación
+-- VARIACIONES DE SERVICIOS (ServiceVariations) — sin modificar duración para mantener 45 min
+-- ServiceId: 1=Diseño clásico, 2=Con tinte, 3=Laminado, 4=Henna, 5=Microblading simulación, 6=Premium
 INSERT INTO ServiceVariations (ServiceId, Name, PriceModifier, DurationModifier, IsActive) VALUES
-(1, N'Solo corte', 0, 0, 1),
-(1, N'Corte + lavado', 3.00, 10, 1),
-(1, N'Corte + secado', 8.00, 15, 1),
-(1, N'Corte + lavado + secado', 10.00, 25, 1),
-(2, N'Corte clásico', 0, 0, 1),
-(2, N'Corte + barba', 5.00, 10, 1),
-(2, N'Corte degradado', 3.00, 5, 1),
-(3, N'Tinte raíces', -25.00, -60, 1),
-(3, N'Retoque', -15.00, -30, 1),
-(3, N'Tinte + mascarilla', 12.00, 20, 1),
-(4, N'Mechas completas', 0, 0, 1),
-(4, N'Babylights', 15.00, 30, 1),
-(4, N'Balayage', 20.00, 45, 1),
-(5, N'Keratina express', -30.00, -60, 1),
-(5, N'Keratina brasileña', 0, 0, 1),
-(6, N'Hidratación estándar', 0, 0, 1),
-(6, N'Hidratación + secado', 5.00, 15, 1);
+(1, N'Estándar', 0, 0, 1),
+(1, N'Con limpieza previa', 3.00, 0, 1),
+(2, N'Tinte solo', 0, 0, 1),
+(2, N'Tinte + diseño', 2.00, 0, 1),
+(3, N'Laminado básico', 0, 0, 1),
+(3, N'Laminado + diseño', 3.00, 0, 1),
+(4, N'Henna natural', 0, 0, 1),
+(4, N'Henna + diseño', 2.00, 0, 1),
+(5, N'Simulación estándar', 0, 0, 1),
+(5, N'Simulación + corrección', 5.00, 0, 1),
+(6, N'Premium completo', 0, 0, 1),
+(6, N'Premium + mascarilla', 4.00, 0, 1);
+
+-- EMPLEADO-SERVICIO: una fila por cada combinación empleado × servicio (2 empleados × 6 servicios = 12 registros)
+INSERT INTO EmployeeServices (EmployeeId, ServiceId, ProficiencyLevel, IsActive) VALUES
+(2, 1, 1, 1), (2, 2, 1, 1), (2, 3, 1, 1), (2, 4, 1, 1), (2, 5, 1, 1), (2, 6, 1, 1),
+(3, 1, 1, 1), (3, 2, 1, 1), (3, 3, 1, 1), (3, 4, 1, 1), (3, 5, 1, 1), (3, 6, 1, 1);
 
 -- DISPONIBILIDAD EMPLEADOS (EmployeeId 2=María, 3=Laura)
 INSERT INTO EmployeeAvailabilities (EmployeeId, DayOfWeek, StartTime, EndTime, IsRecurring) VALUES
