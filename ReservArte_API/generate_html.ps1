@@ -1,0 +1,1 @@
+[xml]=Get-Content  results.trx; =.TestRun.Results.UnitTestResult; ='<html><head><meta charset=utf-8/><title>Test Results</title></head><body><h1>Test Results</h1><table border=1 cellpadding=5><tr><th>Name</th><th>Outcome</th><th>Duration</th></tr>'; foreach( in ){  += <tr><td></td><td></td><td></td></tr> };  += '</table></body></html>';  | Out-File results.html -Encoding utf8
