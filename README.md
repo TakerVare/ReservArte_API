@@ -79,3 +79,14 @@ Para testing, puedes usar las siguientes credenciales de usuarios de prueba:
 | Cliente      | carmen.rodriguez@email.com | Cliente123!  |
 | Cliente      | isabel.sanchez@email.com   | Cliente123!  |
 
+## Testing
+
+El proyecto incluye una suite de pruebas unitarias en `ReservArte_API.Tests` con xUnit y Moq, centradas en el `AppointmentController` y sus DTOs.
+
+Para ejecutar los tests:
+```
+cd ReservArte_API.Tests
+dotnet test
+```
+
+Informe de cobertura interactivo: [https://gasvm.github.io/CoverageReport/](https://gasvm.github.io/CoverageReport/)
