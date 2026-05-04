@@ -3,7 +3,7 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: reservarte_sqlserver
     ports:
-      - "7070:1433"
+      - "1433:1433"
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=ReservArtePass2024(!)
@@ -45,13 +45,13 @@ services:
     restart: "no"
 
   api:
-    image: gsvmm/reservarte-api:latest 
+    image: takervare/reservarte_api:latest 
     container_name: reservarte_api
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5297:5000"
+      - "5000:5000"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:5000
@@ -63,7 +63,7 @@ services:
       - Redsys__MerchantCode=999008881
       - Redsys__Terminal=1
       - Redsys__Currency=978
-      - Reminder__BaseUrl=http://localhost:5297
+      - Reminder__BaseUrl=http://localhost:5000
       - Reminder__BusinessName=ReservArte
       - Reminder__IntervalMinutes=5
     depends_on:

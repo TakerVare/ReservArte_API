@@ -33,7 +33,7 @@ Esta API backend está desarrollada en ASP.NET Core y proporciona los servicios 
    docker-compose up --build -d
    ```
 
-   Esto iniciará SQL Server y la API .NET en `http://localhost:5297`.
+   Esto iniciará SQL Server y la API .NET en `http://localhost:5000`.
 
 ### Ejecutar Localmente (Sin Docker)
 
@@ -52,7 +52,7 @@ Esta API backend está desarrollada en ASP.NET Core y proporciona los servicios 
 ## Documentación de la API
 
 La documentación completa de la API está disponible a través de Swagger en:
-- `http://localhost:5297/swagger/index.html`
+- `http://localhost:5000/swagger/index.html`
 
 ### Endpoints Principales
 
