@@ -471,11 +471,21 @@ CREATE TABLE ConfirmationTokens (
     FOREIGN KEY (AppointmentId) REFERENCES Appointments(Id) ON DELETE CASCADE
 );
 
+CREATE TABLE Configuration (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    CompanyName NVARCHAR(150),
+    CompanyLogo NVARCHAR(250)
+)
+
 PRINT 'Base de datos ReservArteDB inicializada correctamente';
 
 -- ============================================
 -- DATOS INICIALES (para pruebas)
 -- ============================================
+
+-- 
+INSERT INTO Configuration (CompanyName, CompanyLogo) VALUES
+('More Than Brows', 'https://res.cloudinary.com/dn66z1z2i/image/upload/v1778008245/Logo_Recto_More_Than_Brows_SIN_fondo_styoh8.png')
 
 -- USUARIOS (para autenticación). Id 1=admin, 2-3=empleados, 4-6=clientes.
 INSERT INTO Users (FirstName, LastName, Email, Password, Rol, Phone) VALUES
