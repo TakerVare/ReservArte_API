@@ -45,7 +45,7 @@ services:
     restart: "no"
 
   api:
-    image: gsvmm/reservarte-api:latest 
+    # image: gsvmm/reservarte-api:latest 
     container_name: reservarte_api
     build:
       context: .
